@@ -195,6 +195,8 @@ blijven.
 
 ### Story 4 - Antwoorden server-side controleren via `POST /checkanswers`
 
+**Status:** DONE
+
 **Als** eindgebruiker  
 **wil ik** mijn antwoorden kunnen indienen en laten nakijken  
 **zodat** ik feedback krijg zonder dat de client de juiste antwoorden hoeft te kennen.
