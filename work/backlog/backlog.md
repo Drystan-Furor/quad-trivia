@@ -153,6 +153,8 @@ blijven.
 
 ### Story 3 - Veilige vraaguitgifte via `GET /questions`
 
+**Status:** DONE
+
 **Als** eindgebruiker  
 **wil ik** via de applicatie een trivia-set kunnen ophalen  
 **zodat** ik een ronde kan starten zonder direct contact met de externe bron of zicht op de juiste antwoorden.
