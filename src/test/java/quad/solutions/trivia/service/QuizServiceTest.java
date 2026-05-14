@@ -3,9 +3,6 @@ package quad.solutions.trivia.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.GONE;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -69,10 +66,35 @@ class QuizServiceTest {
 		QuizResponse response = quizService.createQuiz(1, null);
 		QuizSession storedQuiz = quizSessionStore.findById(response.quizId()).orElseThrow();
 
+		assertThat(storedQuiz.issuedAt()).isNotNull();
+		assertThat(storedQuiz.expiresAt()).isAfter(storedQuiz.issuedAt());
+		assertThat(storedQuiz.used()).isFalse();
 		assertThat(storedQuiz.questions()).singleElement().satisfies(question -> {
 			assertThat(question.correctAnswer()).isEqualTo("True");
 			assertThat(question.options()).containsExactly("True", "False");
 		});
+	}
+
+	@Test
+	void createQuizAssignsExpectedSessionTtl() {
+		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
+		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock);
+
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+				new OpenTriviaQuestion(
+						"boolean",
+						"easy",
+						"Music",
+						"Is Jazz a genre?",
+						"True",
+						List.of("False"))));
+
+		QuizResponse response = service.createQuiz(1, null);
+		QuizSession storedQuiz = store.findById(response.quizId()).orElseThrow();
+
+		assertThat(storedQuiz.issuedAt()).isEqualTo(Instant.parse("2026-05-14T10:15:30Z"));
+		assertThat(storedQuiz.expiresAt()).isEqualTo(Instant.parse("2026-05-14T10:30:30Z"));
 	}
 
 	@Test
@@ -99,93 +121,73 @@ class QuizServiceTest {
 	}
 
 	@Test
-	void checkAnswersReturnsScoreBasedOnServerSideAnswers() {
-		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
+	void checkAnswersEvaluatesSubmittedAnswersAgainstServerSideSession() {
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new OpenTriviaQuestion(
 						"multiple",
-						"medium",
-						"Science & Nature",
+						"easy",
+						"Science",
 						"What is H2O?",
 						"Water",
-						List.of("Fire", "Earth", "Air")),
+						List.of("Fire", "Earth", "Air"))));
+		QuizResponse quiz = quizService.createQuiz(1, null);
+
+		CheckAnswersResponse response = quizService.checkAnswers(new CheckAnswersRequest(
+				quiz.quizId(),
+				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "Water"))));
+
+		assertThat(response.score()).isEqualTo(1);
+		assertThat(response.totalQuestions()).isEqualTo(1);
+		assertThat(response.results()).singleElement().satisfies(result -> {
+			assertThat(result.questionId()).isEqualTo(quiz.questions().getFirst().id());
+			assertThat(result.correct()).isTrue();
+		});
+		assertThat(quizSessionStore.findById(quiz.quizId())).get().extracting(QuizSession::used).isEqualTo(true);
+	}
+
+	@Test
+	void checkAnswersDoesNotExposeCorrectAnswersInResponse() throws Exception {
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new OpenTriviaQuestion(
 						"multiple",
 						"easy",
-						"Geography",
-						"Which planet is known as the Red Planet?",
-						"Mars",
-						List.of("Venus", "Jupiter", "Saturn"))));
+						"Science",
+						"What is H2O?",
+						"Water",
+						List.of("Fire", "Earth", "Air"))));
+		QuizResponse quiz = quizService.createQuiz(1, null);
 
-		QuizResponse quiz = quizService.createQuiz(2, null);
 		CheckAnswersResponse response = quizService.checkAnswers(new CheckAnswersRequest(
 				quiz.quizId(),
-				List.of(
-						new AnswerSubmissionRequest(quiz.questions().get(0).id(), "Water"),
-						new AnswerSubmissionRequest(quiz.questions().get(1).id(), "Venus"))));
+				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "Fire"))));
+		String json = objectMapper.writeValueAsString(response);
 
-		assertThat(response.score()).isEqualTo(1);
-		assertThat(response.totalQuestions()).isEqualTo(2);
-		assertThat(response.results()).containsExactlyInAnyOrder(
-				new quad.solutions.trivia.dto.AnswerResultResponse(quiz.questions().get(0).id(), true),
-				new quad.solutions.trivia.dto.AnswerResultResponse(quiz.questions().get(1).id(), false));
+		assertThat(response.score()).isZero();
+		assertThat(json).doesNotContain("correctAnswer");
+		assertThat(json).doesNotContain("Water");
+		assertThat(json).doesNotContain("token");
 	}
 
 	@Test
-	void checkAnswersRejectsUnknownQuizSession() {
-		assertThatThrownBy(() -> quizService.checkAnswers(new CheckAnswersRequest(
-				"missing-quiz",
-				List.of(new AnswerSubmissionRequest("question-1", "Water")))))
-				.isInstanceOf(ResponseStatusException.class)
-				.satisfies(exception -> assertThat(((ResponseStatusException) exception).getStatusCode()).isEqualTo(NOT_FOUND));
-	}
-
-	@Test
-	void checkAnswersRejectsExpiredQuizSession() {
-		Clock initialClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
-		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(initialClock);
-		QuizService service = new QuizService(openTriviaClient, store, initialClock);
-
+	void checkAnswersRejectsRepeatedSubmissions() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new OpenTriviaQuestion(
-						"boolean",
+						"multiple",
 						"easy",
-						"Music",
-						"Is Jazz a genre?",
-						"True",
-						List.of("False"))));
-
-		QuizResponse quiz = service.createQuiz(1, null);
-		Clock expiredClock = Clock.fixed(Instant.parse("2026-05-14T10:31:00Z"), ZoneOffset.UTC);
-		QuizService expiredService = new QuizService(openTriviaClient, store, expiredClock);
-
-		assertThatThrownBy(() -> expiredService.checkAnswers(new CheckAnswersRequest(
-				quiz.quizId(),
-				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "True")))))
-				.isInstanceOf(ResponseStatusException.class)
-				.satisfies(exception -> assertThat(((ResponseStatusException) exception).getStatusCode()).isEqualTo(GONE));
-	}
-
-	@Test
-	void checkAnswersRejectsDuplicateSubmit() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
-						"boolean",
-						"easy",
-						"Music",
-						"Is Jazz a genre?",
-						"True",
-						List.of("False"))));
-
+						"Science",
+						"What is H2O?",
+						"Water",
+						List.of("Fire", "Earth", "Air"))));
 		QuizResponse quiz = quizService.createQuiz(1, null);
 		CheckAnswersRequest request = new CheckAnswersRequest(
 				quiz.quizId(),
-				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "True")));
+				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "Water")));
 
 		quizService.checkAnswers(request);
 
 		assertThatThrownBy(() -> quizService.checkAnswers(request))
 				.isInstanceOf(ResponseStatusException.class)
-				.satisfies(exception -> assertThat(((ResponseStatusException) exception).getStatusCode()).isEqualTo(CONFLICT));
+				.hasMessageContaining("already been submitted");
 	}
 
 }

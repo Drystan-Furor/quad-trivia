@@ -1,17 +1,20 @@
 package quad.solutions.trivia.controller;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import java.util.List;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,19 +34,16 @@ import quad.solutions.trivia.service.QuizService;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class QuestionControllerTest {
+class TriviaUiControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
 
 	@MockitoBean
 	private QuizService quizService;
 
 	@Test
-	void getQuestionsReturnsSafeClientPayload() throws Exception {
+	void postQuestionsRendersSafeTriviaPage() throws Exception {
 		when(quizService.createQuiz(5, null)).thenReturn(new QuizResponse(
 				"quiz-123",
 				List.of(new QuestionResponse(
@@ -54,39 +54,45 @@ class QuestionControllerTest {
 						"What is H2O?",
 						List.of("Water", "Fire", "Earth", "Air")))));
 
-		mockMvc.perform(get("/questions"))
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5"))
 				.andExpect(status().isOk())
+				.andExpect(view().name("quiz"))
+				.andExpect(model().attributeExists("quiz"))
 				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
-				.andExpect(jsonPath("$.quizId").value("quiz-123"))
-				.andExpect(jsonPath("$.questions[0].id").value("question-1"))
-				.andExpect(jsonPath("$.questions[0].question").value("What is H2O?"))
-				.andExpect(jsonPath("$.questions[0].options[0]").value("Water"))
-				.andExpect(jsonPath("$.questions[0].correctAnswer").doesNotExist())
-				.andExpect(jsonPath("$.token").doesNotExist());
+				.andExpect(content().string(containsString("What is H2O?")))
+				.andExpect(content().string(containsString("name=\"answers[0].answer\"")))
+				.andExpect(content().string(containsString("value=\"question-1\"")))
+				.andExpect(content().string(not(containsString("correctAnswer"))))
+				.andExpect(content().string(not(containsString("token"))))
+				.andExpect(content().string(not(containsString("debug"))));
 	}
 
 	@Test
-	void postCheckAnswersReturnsServerSideEvaluation() throws Exception {
+	void postCheckAnswersRendersSafeResultsPage() throws Exception {
 		CheckAnswersRequest request = new CheckAnswersRequest(
 				"quiz-123",
 				List.of(new AnswerSubmissionRequest("question-1", "Water")));
-		when(quizService.checkAnswers(request)).thenReturn(new CheckAnswersResponse(
+		when(quizService.checkAnswers(eq(request))).thenReturn(new CheckAnswersResponse(
 				1,
 				1,
 				List.of(new AnswerResultResponse("question-1", true))));
 
 		mockMvc.perform(post("/checkanswers")
 				.with(csrf())
-				.contentType(APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("quizId", "quiz-123")
+				.param("answers[0].questionId", "question-1")
+				.param("answers[0].answer", "Water"))
 				.andExpect(status().isOk())
-				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
-				.andExpect(jsonPath("$.score").value(1))
-				.andExpect(jsonPath("$.totalQuestions").value(1))
-				.andExpect(jsonPath("$.results[0].questionId").value("question-1"))
-				.andExpect(jsonPath("$.results[0].correct").value(true))
-				.andExpect(jsonPath("$.results[0].correctAnswer").doesNotExist())
-				.andExpect(jsonPath("$.token").doesNotExist());
+				.andExpect(view().name("results"))
+				.andExpect(model().attributeExists("results"))
+				.andExpect(content().string(containsString("Score 1 / 1")))
+				.andExpect(content().string(not(containsString("correctAnswer"))))
+				.andExpect(content().string(not(containsString("token"))))
+				.andExpect(content().string(not(containsString("debug"))));
 	}
 
 }

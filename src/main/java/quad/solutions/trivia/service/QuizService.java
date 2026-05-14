@@ -1,5 +1,9 @@
 package quad.solutions.trivia.service;
 
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.GONE;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,10 +30,6 @@ import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
 import quad.solutions.trivia.session.StoredQuestion;
 
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.GONE;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-
 @Service
 public class QuizService {
 
@@ -44,7 +44,7 @@ public class QuizService {
 		this(openTriviaClient, quizSessionStore, Clock.systemUTC());
 	}
 
-	QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock) {
+	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock) {
 		this.openTriviaClient = openTriviaClient;
 		this.quizSessionStore = quizSessionStore;
 		this.clock = clock;
@@ -73,10 +73,12 @@ public class QuizService {
 					List.copyOf(sanitizedOptions)));
 		}
 
+		Instant issuedAt = Instant.now(clock);
 		quizSessionStore.save(new QuizSession(
 				quizId,
 				List.copyOf(storedQuestions),
-				Instant.now(clock).plus(QUIZ_TTL),
+				issuedAt,
+				issuedAt.plus(QUIZ_TTL),
 				false));
 		return new QuizResponse(quizId, List.copyOf(safeQuestions));
 	}
@@ -89,18 +91,15 @@ public class QuizService {
 		QuizSession quizSession = quizSessionStore.findById(request.quizId())
 				.orElseThrow(() -> new ResponseStatusException(GONE, "Quiz session has expired"));
 
-		if (quizSession.isExpiredAt(Instant.now(clock))) {
-			throw new ResponseStatusException(GONE, "Quiz session has expired");
-		}
-
 		if (quizSession.used()) {
 			throw new ResponseStatusException(CONFLICT, "Quiz answers have already been submitted");
 		}
 
-		Map<String, String> submittedAnswers = request.answers().stream()
+		List<AnswerSubmissionRequest> answers = request.answers() == null ? List.of() : request.answers();
+		Map<String, String> submittedAnswers = answers.stream()
 				.collect(Collectors.toMap(
 						AnswerSubmissionRequest::questionId,
-						answer -> sanitize(answer.answer()),
+						AnswerSubmissionRequest::answer,
 						(first, second) -> second));
 
 		List<AnswerResultResponse> results = quizSession.questions().stream()

@@ -2,6 +2,7 @@ package quad.solutions.trivia.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -25,7 +26,10 @@ class HomeControllerTest {
 		mockMvc.perform(get("/"))
 				.andExpect(status().isOk())
 				.andExpect(view().name("home"))
-				.andExpect(header().string("X-Content-Type-Options", "nosniff"));
+				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("max-w-4xl mx-auto")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("action=\"/questions\"")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("Start ronde")));
 	}
 
 }

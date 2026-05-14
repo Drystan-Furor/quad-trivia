@@ -6,6 +6,7 @@ import java.util.List;
 public record QuizSession(
 		String id,
 		List<StoredQuestion> questions,
+		Instant issuedAt,
 		Instant expiresAt,
 		boolean used) {
 
@@ -14,6 +15,6 @@ public record QuizSession(
 	}
 
 	public QuizSession markUsed() {
-		return new QuizSession(id, questions, expiresAt, true);
+		return new QuizSession(id, questions, issuedAt, expiresAt, true);
 	}
 }

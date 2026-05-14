@@ -36,6 +36,7 @@ public class InMemoryQuizSessionStore {
 		}
 
 		if (session.isExpiredAt(Instant.now(clock))) {
+			sessions.remove(id);
 			return Optional.empty();
 		}
 
