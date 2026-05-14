@@ -3,6 +3,8 @@ package quad.solutions.trivia.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -188,6 +190,79 @@ class QuizServiceTest {
 		assertThatThrownBy(() -> quizService.checkAnswers(request))
 				.isInstanceOf(ResponseStatusException.class)
 				.hasMessageContaining("already been submitted");
+	}
+
+	@Test
+	void checkAnswersRejectsIncompleteAnswerPayload() {
+		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
+				new OpenTriviaQuestion(
+						"multiple",
+						"easy",
+						"Science",
+						"What is H2O?",
+						"Water",
+						List.of("Fire", "Earth", "Air")),
+				new OpenTriviaQuestion(
+						"multiple",
+						"easy",
+						"Science",
+						"What is CO2?",
+						"Carbon dioxide",
+						List.of("Oxygen", "Hydrogen", "Nitrogen"))));
+		QuizResponse quiz = quizService.createQuiz(2, null);
+
+		assertThatThrownBy(() -> quizService.checkAnswers(new CheckAnswersRequest(
+				quiz.quizId(),
+				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "Water")))))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
+					assertThat(exception.getReason()).contains("complete answer");
+				});
+	}
+
+	@Test
+	void checkAnswersRejectsAnswersForUnexpectedQuestionIds() {
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+				new OpenTriviaQuestion(
+						"multiple",
+						"easy",
+						"Science",
+						"What is H2O?",
+						"Water",
+						List.of("Fire", "Earth", "Air"))));
+		QuizResponse quiz = quizService.createQuiz(1, null);
+
+		assertThatThrownBy(() -> quizService.checkAnswers(new CheckAnswersRequest(
+				quiz.quizId(),
+				List.of(new AnswerSubmissionRequest("question-does-not-exist", "Water")))))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
+					assertThat(exception.getReason()).contains("known questions");
+				});
+	}
+
+	@Test
+	void createQuizRejectsRequestsThatExceedLocalRateGuard() {
+		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
+		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock);
+
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+				new OpenTriviaQuestion(
+						"boolean",
+						"easy",
+						"Music",
+						"Is Jazz a genre?",
+						"True",
+						List.of("False"))));
+
+		service.createQuiz(1, null);
+
+		assertThatThrownBy(() -> service.createQuiz(1, null))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(TOO_MANY_REQUESTS);
+					assertThat(exception.getReason()).contains("Please wait");
+				});
 	}
 
 }

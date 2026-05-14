@@ -2,6 +2,8 @@ package quad.solutions.trivia.controller;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.HttpStatus.BAD_GATEWAY;
+import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,6 +22,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import quad.solutions.trivia.client.OpenTriviaClientException;
+import quad.solutions.trivia.client.OpenTriviaRateLimitException;
 import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
@@ -87,6 +91,43 @@ class QuestionControllerTest {
 				.andExpect(jsonPath("$.results[0].correct").value(true))
 				.andExpect(jsonPath("$.results[0].correctAnswer").doesNotExist())
 				.andExpect(jsonPath("$.token").doesNotExist());
+	}
+
+	@Test
+	void getQuestionsRejectsAmountsAboveTheSupportedLimit() throws Exception {
+		mockMvc.perform(get("/questions").param("amount", "51"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
+	}
+
+	@Test
+	void postCheckAnswersRejectsIncompletePayload() throws Exception {
+		mockMvc.perform(post("/checkanswers")
+				.with(csrf())
+				.contentType(APPLICATION_JSON)
+				.content("""
+						{"quizId":"quiz-123","answers":[]}
+						"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("Invalid request payload"));
+	}
+
+	@Test
+	void getQuestionsMapsUpstreamRateLimitsToControlledResponse() throws Exception {
+		when(quizService.createQuiz(5, null)).thenThrow(new OpenTriviaRateLimitException("upstream detail"));
+
+		mockMvc.perform(get("/questions"))
+				.andExpect(status().is(TOO_MANY_REQUESTS.value()))
+				.andExpect(jsonPath("$.message").value("Trivia service is temporarily busy. Please try again shortly."));
+	}
+
+	@Test
+	void getQuestionsHidesInternalUpstreamFailures() throws Exception {
+		when(quizService.createQuiz(5, null)).thenThrow(new OpenTriviaClientException("internal upstream detail"));
+
+		mockMvc.perform(get("/questions"))
+				.andExpect(status().is(BAD_GATEWAY.value()))
+				.andExpect(jsonPath("$.message").value("Trivia questions are temporarily unavailable."));
 	}
 
 }
