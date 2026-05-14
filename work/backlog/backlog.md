@@ -359,6 +359,8 @@ moeten worden gecontroleerd.
 
 ### Story 8 - README en security-notes opleveren
 
+**Status:** DONE
+
 **Als** developer  
 **wil ik** duidelijke build-, run-, test- en securityinstructies opleveren  
 **zodat** de reviewer de applicatie correct kan starten en de gemaakte keuzes kan beoordelen.
