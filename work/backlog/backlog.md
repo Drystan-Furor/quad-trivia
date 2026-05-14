@@ -112,6 +112,8 @@ blijven.
 
 ### Story 2 - Upstream Open Trivia client met token lifecycle
 
+**Status:** DONE
+
 **Als** backend  
 **wil ik** Open Trivia DB via een interne client met session-tokenbeheer benaderen  
 **zodat** dubbele vragen beperkt blijven en upstream foutcodes gecontroleerd worden afgehandeld.
