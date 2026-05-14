@@ -73,6 +73,8 @@ blijven.
 
 ### Story 1 - Security-first project bootstrap
 
+**Status:** DONE
+
 **Als** Java Spring Boot developer  
 **wil ik** een werkende basisapplicatie met MVC, Thymeleaf, Spring Security en testconfiguratie  
 **zodat** vervolgfunctionaliteit op veilige defaults gebouwd wordt.
