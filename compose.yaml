@@ -1,1 +1,18 @@
-services: {}
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-quad-trivia:local}
+    restart: unless-stopped
+    ports:
+      - "4361:4361"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: "4361"
+    healthcheck:
+      test: "wget --no-verbose --tries=1 --spider http://localhost:4361/ || exit 1"
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
