@@ -1,22 +1,50 @@
 package quad.solutions.trivia.session;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InMemoryQuizSessionStore {
 
 	private final Map<String, QuizSession> sessions = new ConcurrentHashMap<>();
+	private final Clock clock;
+
+	@Autowired
+	public InMemoryQuizSessionStore() {
+		this(Clock.systemUTC());
+	}
+
+	public InMemoryQuizSessionStore(Clock clock) {
+		this.clock = clock;
+	}
 
 	public void save(QuizSession quizSession) {
 		sessions.put(quizSession.id(), quizSession);
 	}
 
 	public Optional<QuizSession> findById(String id) {
-		return Optional.ofNullable(sessions.get(id));
+		QuizSession session = sessions.get(id);
+
+		if (session == null) {
+			return Optional.empty();
+		}
+
+		if (session.isExpiredAt(Instant.now(clock))) {
+			sessions.remove(id);
+			return Optional.empty();
+		}
+
+		return Optional.of(session);
+	}
+
+	public boolean hasSession(String id) {
+		return sessions.containsKey(id);
 	}
 
 }

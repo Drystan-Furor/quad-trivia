@@ -3,6 +3,9 @@ package quad.solutions.trivia.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,10 +61,35 @@ class QuizServiceTest {
 		QuizResponse response = quizService.createQuiz(1, null);
 		QuizSession storedQuiz = quizSessionStore.findById(response.quizId()).orElseThrow();
 
+		assertThat(storedQuiz.issuedAt()).isNotNull();
+		assertThat(storedQuiz.expiresAt()).isAfter(storedQuiz.issuedAt());
+		assertThat(storedQuiz.used()).isFalse();
 		assertThat(storedQuiz.questions()).singleElement().satisfies(question -> {
 			assertThat(question.correctAnswer()).isEqualTo("True");
 			assertThat(question.options()).containsExactly("True", "False");
 		});
+	}
+
+	@Test
+	void createQuizAssignsExpectedSessionTtl() {
+		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
+		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock);
+
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+				new OpenTriviaQuestion(
+						"boolean",
+						"easy",
+						"Music",
+						"Is Jazz a genre?",
+						"True",
+						List.of("False"))));
+
+		QuizResponse response = service.createQuiz(1, null);
+		QuizSession storedQuiz = store.findById(response.quizId()).orElseThrow();
+
+		assertThat(storedQuiz.issuedAt()).isEqualTo(Instant.parse("2026-05-14T10:15:30Z"));
+		assertThat(storedQuiz.expiresAt()).isEqualTo(Instant.parse("2026-05-14T10:30:30Z"));
 	}
 
 	@Test

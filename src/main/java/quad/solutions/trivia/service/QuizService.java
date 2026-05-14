@@ -1,9 +1,13 @@
 package quad.solutions.trivia.service;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.HtmlUtils;
 
@@ -18,12 +22,21 @@ import quad.solutions.trivia.session.StoredQuestion;
 @Service
 public class QuizService {
 
+	private static final Duration QUIZ_TTL = Duration.ofMinutes(15);
+
 	private final OpenTriviaClient openTriviaClient;
 	private final InMemoryQuizSessionStore quizSessionStore;
+	private final Clock clock;
 
+	@Autowired
 	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore) {
+		this(openTriviaClient, quizSessionStore, Clock.systemUTC());
+	}
+
+	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock) {
 		this.openTriviaClient = openTriviaClient;
 		this.quizSessionStore = quizSessionStore;
+		this.clock = clock;
 	}
 
 	public QuizResponse createQuiz(int amount, Integer category) {
@@ -45,11 +58,17 @@ public class QuizService {
 					sanitizedOptions));
 			storedQuestions.add(new StoredQuestion(
 					questionId,
-					upstreamQuestion.correctAnswer(),
+					sanitize(upstreamQuestion.correctAnswer()),
 					List.copyOf(sanitizedOptions)));
 		}
 
-		quizSessionStore.save(new QuizSession(quizId, List.copyOf(storedQuestions)));
+		Instant issuedAt = Instant.now(clock);
+		quizSessionStore.save(new QuizSession(
+				quizId,
+				List.copyOf(storedQuestions),
+				issuedAt,
+				issuedAt.plus(QUIZ_TTL),
+				false));
 		return new QuizResponse(quizId, List.copyOf(safeQuestions));
 	}
 

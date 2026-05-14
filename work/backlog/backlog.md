@@ -233,6 +233,8 @@ blijven.
 
 ### Story 5 - Quiz-sessiebeheer en tijdelijke state
 
+**Status:** DONE
+
 **Als** systeem  
 **wil ik** quiz-state tijdelijk en gecontroleerd beheren  
 **zodat** de applicatie zonder database toch veilig kan vaststellen welke vragen zijn uitgegeven en hoe antwoorden
