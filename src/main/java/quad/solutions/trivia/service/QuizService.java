@@ -1,18 +1,29 @@
 package quad.solutions.trivia.service;
 
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.GONE;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.HtmlUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import quad.solutions.trivia.client.OpenTriviaClient;
 import quad.solutions.trivia.client.OpenTriviaQuestion;
+import quad.solutions.trivia.dto.AnswerResultResponse;
+import quad.solutions.trivia.dto.AnswerSubmissionRequest;
+import quad.solutions.trivia.dto.CheckAnswersRequest;
+import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuestionResponse;
 import quad.solutions.trivia.dto.QuizResponse;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
@@ -70,6 +81,36 @@ public class QuizService {
 				issuedAt.plus(QUIZ_TTL),
 				false));
 		return new QuizResponse(quizId, List.copyOf(safeQuestions));
+	}
+
+	public CheckAnswersResponse checkAnswers(CheckAnswersRequest request) {
+		if (!quizSessionStore.hasSession(request.quizId())) {
+			throw new ResponseStatusException(NOT_FOUND, "Quiz session is not available");
+		}
+
+		QuizSession quizSession = quizSessionStore.findById(request.quizId())
+				.orElseThrow(() -> new ResponseStatusException(GONE, "Quiz session has expired"));
+
+		if (quizSession.used()) {
+			throw new ResponseStatusException(CONFLICT, "Quiz answers have already been submitted");
+		}
+
+		List<AnswerSubmissionRequest> answers = request.answers() == null ? List.of() : request.answers();
+		Map<String, String> submittedAnswers = answers.stream()
+				.collect(Collectors.toMap(
+						AnswerSubmissionRequest::questionId,
+						AnswerSubmissionRequest::answer,
+						(first, second) -> second));
+
+		List<AnswerResultResponse> results = quizSession.questions().stream()
+				.map(question -> new AnswerResultResponse(
+						question.id(),
+						question.correctAnswer().equals(submittedAnswers.get(question.id()))))
+				.toList();
+
+		int score = (int) results.stream().filter(AnswerResultResponse::correct).count();
+		quizSessionStore.save(quizSession.markUsed());
+		return new CheckAnswersResponse(score, quizSession.questions().size(), results);
 	}
 
 	private List<String> sanitizeOptions(OpenTriviaQuestion upstreamQuestion) {

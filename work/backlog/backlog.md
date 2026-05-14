@@ -272,6 +272,8 @@ moeten worden gecontroleerd.
 
 ### Story 6 - Veilige en eenvoudige trivia UI
 
+**Status:** DONE
+
 **Als** eindgebruiker  
 **wil ik** een eenvoudige webinterface gebruiken om vragen te beantwoorden  
 **zodat** ik de applicatie zonder API-kennis kan gebruiken.
@@ -286,11 +288,16 @@ moeten worden gecontroleerd.
 
 **Scope**
 
+- Gebruik tailwind CSS voor UI-stijlen.
+- Maak een mobile first responsive UI.
+- Centreer de UI horizontaal op alle apparaten:<main class="max-w-4xl mx-auto">*</main>
 - Bouw een pagina waarop een gebruiker een trivia-ronde kan starten.
 - Toon vragen en antwoordopties duidelijk in de UI.
 - Maak het mogelijk om antwoorden te selecteren en te versturen.
 - Gebruik alleen server-side aangeleverde veilige viewmodellen.
 - Zorg dat de UI geen verborgen correcte antwoorden, tokens of debugdata bevat.
+- gebruik de styling van https://yonify-ip10.onrender.com/
+- gebruik Playwright voor e2e-tests.
 
 **TDD-plan**
 
@@ -302,10 +309,12 @@ moeten worden gecontroleerd.
 
 **Acceptatiecriteria**
 
+- De gebruiker kan via de browser een tailwind CSS-gebaseerde UI gebruiken.
 - De gebruiker kan via de browser een trivia-ronde starten.
 - De gebruiker ziet vragen en antwoordopties op een duidelijke pagina.
 - De gebruiker kan antwoorden insturen via de UI.
 - De gerenderde HTML bevat geen correcte antwoorden, tokens of interne debugdata.
+- Integratie en e2e tests zijn volledig geautomatiseerd.
 
 ### Story 7 - Validatie, foutafhandeling en abuse controls
 
