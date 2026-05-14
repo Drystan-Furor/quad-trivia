@@ -23,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import quad.solutions.trivia.client.OpenTriviaRateLimitException;
 import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
@@ -93,6 +94,31 @@ class TriviaUiControllerTest {
 				.andExpect(content().string(not(containsString("correctAnswer"))))
 				.andExpect(content().string(not(containsString("token"))))
 				.andExpect(content().string(not(containsString("debug"))));
+	}
+
+	@Test
+	void postQuestionsRendersFriendlyErrorWhenQuizCreationIsRateLimited() throws Exception {
+		when(quizService.createQuiz(5, null)).thenThrow(new OpenTriviaRateLimitException("internal detail"));
+
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5"))
+				.andExpect(status().isTooManyRequests())
+				.andExpect(view().name("error"))
+				.andExpect(model().attribute("errorMessage", "Trivia service is temporarily busy. Please try again shortly."))
+				.andExpect(content().string(not(containsString("internal detail"))));
+	}
+
+	@Test
+	void postQuestionsRejectsInvalidAmountsWithFriendlyMessage() throws Exception {
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "51"))
+				.andExpect(status().isBadRequest())
+				.andExpect(view().name("error"))
+				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
 	}
 
 }

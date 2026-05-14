@@ -320,6 +320,8 @@ moeten worden gecontroleerd.
 
 ### Story 7 - Validatie, foutafhandeling en abuse controls
 
+**Status:** DONE
+
 **Als** gebruiker en beheerder  
 **wil ik** dat ongeldige input, upstream fouten en misbruik gecontroleerd worden afgehandeld  
 **zodat** de applicatie stabiel en minder eenvoudig misbruikbaar blijft.

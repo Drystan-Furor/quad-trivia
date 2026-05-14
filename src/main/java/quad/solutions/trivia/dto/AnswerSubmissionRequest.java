@@ -1,6 +1,8 @@
 package quad.solutions.trivia.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record AnswerSubmissionRequest(
-		String questionId,
-		String answer) {
+		@NotBlank(message = "Question id is required") String questionId,
+		@NotBlank(message = "Selected answer is required") String answer) {
 }
