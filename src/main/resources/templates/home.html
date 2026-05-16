@@ -18,7 +18,7 @@
     <section class="mt-10 rounded-2xl border border-amber-600 bg-neutral-100 p-6 shadow">
         <p class="text-sm font-bold uppercase tracking-wide text-amber-600">Trivia ronde</p>
         <h1 class="mt-2 text-4xl font-bold">Quad Trivia</h1>
-        <form th:action="@{/questions}" method="post" class="mt-8 flex flex-col gap-4 sm:flex-row sm:items-end">
+        <form th:action="@{/questions}" method="post" class="mt-8 flex flex-col gap-4 sm:flex-row sm:items-end" data-question-form>
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <label for="amount" class="flex flex-col gap-2 text-sm font-semibold">
                 Aantal vragen
@@ -26,11 +26,36 @@
                        class="w-36 rounded-xl border-2 border-cyan-950 bg-white px-3 py-2 text-base shadow-[4px_4px_0_#083344]">
             </label>
             <button type="submit"
-                    class="rounded-xl border-2 border-cyan-950 bg-amber-600 px-5 py-3 font-bold text-neutral-100 shadow-[4px_4px_0_#083344] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#083344]">
-                Start ronde
+                    class="inline-flex items-center gap-3 rounded-xl border-2 border-cyan-950 bg-amber-600 px-5 py-3 font-bold text-neutral-100 shadow-[4px_4px_0_#083344] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#083344] disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_#083344]"
+                    data-submit-button>
+                <span data-loading-indicator class="hidden h-5 w-5 animate-spin rounded-full border-2 border-neutral-100 border-t-transparent"
+                      aria-hidden="true"></span>
+                <span data-idle-label>Start ronde</span>
+                <span data-loading-label class="hidden">Ronde laden...</span>
             </button>
         </form>
     </section>
 </main>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.querySelector("[data-question-form]");
+        const submitButton = form?.querySelector("[data-submit-button]");
+        const idleLabel = submitButton?.querySelector("[data-idle-label]");
+        const loadingLabel = submitButton?.querySelector("[data-loading-label]");
+        const loadingIndicator = submitButton?.querySelector("[data-loading-indicator]");
+
+        if (!form || !submitButton || !idleLabel || !loadingLabel || !loadingIndicator) {
+            return;
+        }
+
+        form.addEventListener("submit", () => {
+            submitButton.disabled = true;
+            submitButton.setAttribute("aria-busy", "true");
+            idleLabel.classList.add("hidden");
+            loadingLabel.classList.remove("hidden");
+            loadingIndicator.classList.remove("hidden");
+        });
+    });
+</script>
 </body>
 </html>

@@ -24,6 +24,37 @@ test("user can start and submit a safe trivia round", async ({ page }) => {
   expect(resultsHtml).not.toContain("debug");
 });
 
+test("start button disables and shows progress while quiz is loading", async ({ page }) => {
+  await page.route("**/questions", async (route) => {
+    if (route.request().method() === "POST") {
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+    await route.continue();
+  });
+
+  await page.goto("/");
+
+  const startButton = page.locator("[data-submit-button]");
+  await Promise.all([
+    page.waitForFunction(() => {
+      const button = document.querySelector("[data-submit-button]");
+      const idleLabel = document.querySelector("[data-idle-label]");
+      const loadingLabel = document.querySelector("[data-loading-label]");
+      const loadingIndicator = document.querySelector("[data-loading-indicator]");
+
+      return Boolean(
+        button?.disabled &&
+        idleLabel?.classList.contains("hidden") &&
+        !loadingLabel?.classList.contains("hidden") &&
+        !loadingIndicator?.classList.contains("hidden")
+      );
+    }),
+    startButton.click({ noWaitAfter: true })
+  ]);
+
+  await expect(page.getByRole("heading", { name: "Trivia ronde" })).toBeVisible();
+});
+
 test("submit button disables and shows progress while answers are processing", async ({ page }) => {
   await page.route("**/checkanswers", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 750));
