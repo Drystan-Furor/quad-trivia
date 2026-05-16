@@ -3,13 +3,15 @@ import { spawn } from "node:child_process";
 
 const upstreamPort = 8098;
 const appPort = 8097;
+let tokenCounter = 0;
 
 const upstream = createServer((request, response) => {
   const url = new URL(request.url, `http://127.0.0.1:${upstreamPort}`);
   response.setHeader("Content-Type", "application/json");
 
   if (url.pathname === "/api_token.php") {
-    response.end(JSON.stringify({ response_code: 0, token: "e2e-token" }));
+    tokenCounter += 1;
+    response.end(JSON.stringify({ response_code: 0, token: `e2e-token-${tokenCounter}` }));
     return;
   }
 
