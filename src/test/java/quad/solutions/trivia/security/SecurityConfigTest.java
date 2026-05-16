@@ -1,5 +1,6 @@
 package quad.solutions.trivia.security;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -22,6 +23,12 @@ class SecurityConfigTest {
 	void postWithoutCsrfTokenIsRejected() throws Exception {
 		mockMvc.perform(post("/questions"))
 				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void staticJavascriptIsAccessibleWithoutAuthentication() throws Exception {
+		mockMvc.perform(get("/js/home.js"))
+				.andExpect(status().isOk());
 	}
 
 }

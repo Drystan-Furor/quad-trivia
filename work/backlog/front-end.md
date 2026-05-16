@@ -1,59 +1,57 @@
-# Front-end Backlog - Quad Trivia
+systems tests show possible improvements for user experience. draft tickets here.
 
-## Story 1 - Disable submit during answer processing
-
-**Status:** DONE
-
-**Als** gebruiker  
-**wil ik** dat de submitknop direct niet meer klikbaar is nadat ik mijn antwoorden verstuur  
-**zodat** ik niet per ongeluk meerdere submits verstuur terwijl de backend nog bezig is.
-
-**Spec**
-
-- De quizpagina rendert een submitknop voor het antwoordenformulier.
-- Zodra het antwoordenformulier wordt verstuurd, wordt dezelfde submitknop disabled.
-- Tijdens de lopende request accepteert de submitknop geen extra clicks of submits meer.
-- De loading-state wordt client-side geactiveerd zonder extra backend-endpoint.
-- Na een succesvolle response navigeert de browser door naar de resultatenpagina.
-
-**TDD-plan**
-
-1. Schrijf een failing MVC-test die verifieert dat de quizpagina submit-loading hooks rendert.
-2. Schrijf een failing Playwright-test die een vertraagde submit simuleert en controleert dat de knop disabled wordt.
-3. Implementeer de minimale frontendlogica om de knop bij submit direct te vergrendelen.
-4. Refactor alleen wanneer de oplossing nog eenvoudiger of duidelijker kan zonder extra gedrag.
-
-**Acceptatiecriteria**
-
-- De submitknop krijgt direct een disabled state na het starten van submit.
-- Een tweede click op de knop tijdens dezelfde request is niet mogelijk.
-- De bestaande submitflow naar de resultatenpagina blijft werken.
-
-## Story 2 - Show processing feedback on submit button
+## Story 1 - Move quiz page behavior into a static script
 
 **Status:** DONE
 
-**Als** gebruiker  
-**wil ik** een spinner of andere zichtbare verwerkingstatus op de submitknop zien  
-**zodat** ik bevestiging krijg dat mijn actie verwerkt wordt en ik moet wachten.
+**Als** developer  
+**wil ik** dat de JavaScript in `src/main/resources/templates/quiz.html` wordt verplaatst naar `src/main/resources/static/js/quiz.js`  
+**zodat** ik de quizpagina beter kan onderhouden.
 
 **Spec**
 
-- De quizpagina rendert een visuele processing-indicator in of naast de submitknop.
-- De indicator is standaard verborgen voordat submit start.
-- Zodra het antwoordenformulier wordt verstuurd, wordt de indicator zichtbaar en verandert het knoplabel naar een lopende status.
-- De processing-indicator blijft zichtbaar totdat de response de pagina vervangt.
-- De feedback is zichtbaar zonder afhankelijk te zijn van browser-alerts of extra pagina-elementen buiten de knop.
+- De quiztemplate bevat geen inline JavaScript meer voor submitgedrag.
+- De quizpagina laadt `"/js/quiz.js"` vanuit `<head>` met het `defer` attribuut.
+- Het verplaatste script behoudt het bestaande DOM-contract van de quizpagina.
+- De pagina houdt quiz-submitgedrag buiten de template en binnen static resources.
 
 **TDD-plan**
 
-1. Breid de failing MVC-test uit zodat de knop een verborgen processing-indicator en processing-label bevat.
-2. Breid de failing Playwright-test uit zodat tijdens een vertraagde submit de indicator zichtbaar is en het label wijzigt.
-3. Implementeer de minimale UI-wijziging in de quiztemplate om de indicator en labelwissel te tonen.
-4. Houd de markup toegankelijk en beperkt tot de submitknop.
+1. Schrijf een failing MVC-test die een deferred script tag naar `"/js/quiz.js"` verwacht en een inline scriptblock in `quiz.html` afwijst.
+2. Schrijf een failing Playwright-test die verifieert dat de quizflow blijft werken terwijl het script buiten de template geladen wordt.
+3. Verplaats de minimale JavaScript naar `src/main/resources/static/js/quiz.js` en verwijder de inline code uit de template.
+4. Refactor alleen wanneer de oplossing eenvoudiger wordt zonder extra gedrag toe te voegen.
 
 **Acceptatiecriteria**
 
-- De submitknop toont tijdens submit een zichtbare processing-indicator.
-- De submitknop toont tijdens submit een duidelijk wachtlabel.
-- De indicator is vóór submit niet zichtbaar.
+- `quiz.html` bevat geen inline pagina-JavaScript meer.
+- `quiz.html` laadt `"/js/quiz.js"` met `defer` vanuit `<head>`.
+- De quizflow blijft werken na het verplaatsen van het script.
+
+## Story 2 - Standardize page script loading structure
+
+**Status:** DONE
+
+**Als** developer  
+**wil ik** dat pagina-JavaScript volgens dezelfde static-resource-structuur wordt geladen en met `defer` in `<head>` staat  
+**zodat** de frontend een consistenter ontwikkelpad krijgt.
+
+**Spec**
+
+- Templates blijven verantwoordelijk voor HTML-markup.
+- Pagina-specifieke JavaScript staat onder `src/main/resources/static/js`.
+- Pagina's met eigen client-side gedrag laden hun script via een deferred script tag in `<head>`.
+- Binnen de huidige scope is de quizpagina de referentie-implementatie van deze structuur.
+
+**TDD-plan**
+
+1. Breid de failing MVC-asserties uit zodat de quiztemplate de beoogde static-resource-structuur expliciet rendert.
+2. Houd de failing end-to-end flow in stand zodat de structurele wijziging aantoonbaar geen regressie veroorzaakt.
+3. Implementeer de minimale resource-structuur en template-wiring voor de quizpagina.
+4. Laat overige templates ongemoeid zolang ze geen eigen pagina-JavaScript bevatten.
+
+**Acceptatiecriteria**
+
+- Pagina-JavaScript voor de quiz staat onder `src/main/resources/static/js`.
+- De quiztemplate laadt dat script deferred vanuit `<head>`.
+- De wijziging blijft beperkt tot de pagina met bestaand client-side gedrag in deze scope.

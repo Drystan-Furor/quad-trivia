@@ -29,10 +29,12 @@ class HomeControllerTest {
 				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("max-w-4xl mx-auto")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("action=\"/questions\"")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("<script defer src=\"/js/home.js\"></script>")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("data-submit-button")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("data-idle-label")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("data-loading-label")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("data-loading-indicator")))
+				.andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("document.addEventListener(\"DOMContentLoaded\""))))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("Start ronde")));
 	}
 

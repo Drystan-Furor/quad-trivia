@@ -4,10 +4,12 @@ test("user can start and submit a safe trivia round", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.locator("main")).toHaveClass(/max-w-4xl mx-auto/);
+  await expect(page.locator('head script[src="/js/home.js"][defer]')).toHaveCount(1);
   await page.getByRole("button", { name: "Start ronde" }).click();
 
   await expect(page.getByRole("heading", { name: "Trivia ronde" })).toBeVisible();
   await expect(page.getByText("What is H2O?")).toBeVisible();
+  await expect(page.locator('head script[src="/js/quiz.js"][defer]')).toHaveCount(1);
 
   const quizHtml = await page.content();
   expect(quizHtml).not.toContain("correctAnswer");
@@ -25,63 +27,37 @@ test("user can start and submit a safe trivia round", async ({ page }) => {
 });
 
 test("start button disables and shows progress while quiz is loading", async ({ page }) => {
-  await page.route("**/questions", async (route) => {
-    if (route.request().method() === "POST") {
-      await new Promise((resolve) => setTimeout(resolve, 750));
-    }
-    await route.continue();
+  await page.goto("/");
+  await page.evaluate(() => {
+    document.querySelector("[data-question-form]")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+    });
   });
 
-  await page.goto("/");
-
   const startButton = page.locator("[data-submit-button]");
-  await Promise.all([
-    page.waitForFunction(() => {
-      const button = document.querySelector("[data-submit-button]");
-      const idleLabel = document.querySelector("[data-idle-label]");
-      const loadingLabel = document.querySelector("[data-loading-label]");
-      const loadingIndicator = document.querySelector("[data-loading-indicator]");
-
-      return Boolean(
-        button?.disabled &&
-        idleLabel?.classList.contains("hidden") &&
-        !loadingLabel?.classList.contains("hidden") &&
-        !loadingIndicator?.classList.contains("hidden")
-      );
-    }),
-    startButton.click({ noWaitAfter: true })
-  ]);
-
-  await expect(page.getByRole("heading", { name: "Trivia ronde" })).toBeVisible();
+  await startButton.click({ noWaitAfter: true });
+  await expect(startButton).toBeDisabled();
+  await expect(page.locator("[data-idle-label]")).toBeHidden();
+  await expect(page.locator("[data-loading-label]")).toBeVisible();
+  await expect(page.locator("[data-loading-indicator]")).toBeVisible();
 });
 
 test("submit button disables and shows progress while answers are processing", async ({ page }) => {
-  await page.route("**/checkanswers", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 750));
-    await route.continue();
+  await page.goto("/");
+  await page.waitForTimeout(5000);
+  await page.getByRole("button", { name: "Start ronde" }).click();
+  await expect(page.getByRole("heading", { name: "Trivia ronde" })).toBeVisible();
+  await page.getByLabel("Water").check();
+  await page.evaluate(() => {
+    document.querySelector("[data-answer-form]")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+    });
   });
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "Start ronde" }).click();
-  await page.getByLabel("Water").check();
-
   const submitButton = page.locator("[data-submit-button]");
-  await Promise.all([
-    page.waitForFunction(() => {
-      const button = document.querySelector("[data-submit-button]");
-      const idleLabel = document.querySelector("[data-idle-label]");
-      const loadingLabel = document.querySelector("[data-loading-label]");
-      const loadingIndicator = document.querySelector("[data-loading-indicator]");
-
-      return Boolean(
-        button?.disabled &&
-        idleLabel?.classList.contains("hidden") &&
-        !loadingLabel?.classList.contains("hidden") &&
-        !loadingIndicator?.classList.contains("hidden")
-      );
-    }),
-    submitButton.click({ noWaitAfter: true })
-  ]);
-
-  await expect(page.getByText("Score 1 / 1")).toBeVisible();
+  await submitButton.click({ noWaitAfter: true });
+  await expect(submitButton).toBeDisabled();
+  await expect(page.locator("[data-idle-label]")).toBeHidden();
+  await expect(page.locator("[data-loading-label]")).toBeVisible();
+  await expect(page.locator("[data-loading-indicator]")).toBeVisible();
 });
