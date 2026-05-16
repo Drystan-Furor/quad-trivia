@@ -23,3 +23,34 @@ test("user can start and submit a safe trivia round", async ({ page }) => {
   expect(resultsHtml).not.toContain("e2e-token");
   expect(resultsHtml).not.toContain("debug");
 });
+
+test("submit button disables and shows progress while answers are processing", async ({ page }) => {
+  await page.route("**/checkanswers", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start ronde" }).click();
+  await page.getByLabel("Water").check();
+
+  const submitButton = page.locator("[data-submit-button]");
+  await Promise.all([
+    page.waitForFunction(() => {
+      const button = document.querySelector("[data-submit-button]");
+      const idleLabel = document.querySelector("[data-idle-label]");
+      const loadingLabel = document.querySelector("[data-loading-label]");
+      const loadingIndicator = document.querySelector("[data-loading-indicator]");
+
+      return Boolean(
+        button?.disabled &&
+        idleLabel?.classList.contains("hidden") &&
+        !loadingLabel?.classList.contains("hidden") &&
+        !loadingIndicator?.classList.contains("hidden")
+      );
+    }),
+    submitButton.click({ noWaitAfter: true })
+  ]);
+
+  await expect(page.getByText("Score 1 / 1")).toBeVisible();
+});

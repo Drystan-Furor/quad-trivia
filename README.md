@@ -5,7 +5,7 @@ Open Trivia session tokens on the server so the browser never receives the corre
 
 ## Requirements
 
-- Java 25
+- Java 21
 - Node.js and npm for Playwright e2e tests
 
 ## Build

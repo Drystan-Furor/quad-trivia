@@ -66,6 +66,10 @@ class TriviaUiControllerTest {
 				.andExpect(content().string(containsString("What is H2O?")))
 				.andExpect(content().string(containsString("name=\"answers[0].answer\"")))
 				.andExpect(content().string(containsString("value=\"question-1\"")))
+				.andExpect(content().string(containsString("data-submit-button")))
+				.andExpect(content().string(containsString("data-idle-label")))
+				.andExpect(content().string(containsString("data-loading-label")))
+				.andExpect(content().string(containsString("data-loading-indicator")))
 				.andExpect(content().string(not(containsString("correctAnswer"))))
 				.andExpect(content().string(not(containsString("token"))))
 				.andExpect(content().string(not(containsString("debug"))));
