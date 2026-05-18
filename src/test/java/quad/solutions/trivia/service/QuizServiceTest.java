@@ -78,6 +78,32 @@ class QuizServiceTest {
 	}
 
 	@Test
+	void createQuizPassesSelectedCategoryToOpenTriviaClient() {
+		when(openTriviaClient.fetchQuestions(1, 18)).thenReturn(List.of(
+				new OpenTriviaQuestion(
+						"multiple",
+						"easy",
+						"Science: Computers",
+						"What does CPU stand for?",
+						"Central Processing Unit",
+						List.of("Computer Personal Unit"))));
+
+		QuizResponse response = quizService.createQuiz(1, 18);
+
+		assertThat(response.questions()).singleElement().satisfies(question ->
+				assertThat(question.category()).isEqualTo("Science: Computers"));
+	}
+
+	@Test
+	void createQuizRejectsNonPositiveCategories() {
+		assertThatThrownBy(() -> quizService.createQuiz(1, 0))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
+					assertThat(exception.getReason()).isEqualTo("Invalid request parameters");
+				});
+	}
+
+	@Test
 	void createQuizAssignsExpectedSessionTtl() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);

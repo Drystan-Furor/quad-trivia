@@ -1,6 +1,7 @@
 package quad.solutions.trivia.controller;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
@@ -70,6 +71,28 @@ class QuestionControllerTest {
 	}
 
 	@Test
+	void getQuestionsPassesSelectedCategoryToService() throws Exception {
+		when(quizService.createQuiz(5, 18)).thenReturn(new QuizResponse(
+				"quiz-123",
+				List.of(new QuestionResponse(
+						"question-1",
+						"multiple",
+						"medium",
+						"Science: Computers",
+						"What does CPU stand for?",
+						List.of("Central Processing Unit", "Computer Personal Unit")))));
+
+		mockMvc.perform(get("/questions")
+				.param("amount", "5")
+				.param("category", "18"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.quizId").value("quiz-123"))
+				.andExpect(jsonPath("$.questions[0].category").value("Science: Computers"));
+
+		verify(quizService).createQuiz(5, 18);
+	}
+
+	@Test
 	void postCheckAnswersReturnsServerSideEvaluation() throws Exception {
 		CheckAnswersRequest request = new CheckAnswersRequest(
 				"quiz-123",
@@ -96,6 +119,13 @@ class QuestionControllerTest {
 	@Test
 	void getQuestionsRejectsAmountsAboveTheSupportedLimit() throws Exception {
 		mockMvc.perform(get("/questions").param("amount", "51"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
+	}
+
+	@Test
+	void getQuestionsRejectsNonPositiveCategories() throws Exception {
+		mockMvc.perform(get("/questions").param("category", "0"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
 	}

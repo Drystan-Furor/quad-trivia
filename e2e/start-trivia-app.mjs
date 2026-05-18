@@ -16,13 +16,14 @@ const upstream = createServer((request, response) => {
   }
 
   if (url.pathname === "/api.php") {
+    const category = url.searchParams.get("category") === "18" ? "Science: Computers" : "Science";
     response.end(JSON.stringify({
       response_code: 0,
       results: [
         {
           type: "multiple",
           difficulty: "easy",
-          category: "Science",
+          category,
           question: "What%20is%20H2O%3F",
           correct_answer: "Water",
           incorrect_answers: ["Fire", "Earth", "Air"]

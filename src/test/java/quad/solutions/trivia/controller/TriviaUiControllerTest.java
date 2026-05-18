@@ -3,6 +3,7 @@ package quad.solutions.trivia.controller;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -66,12 +67,36 @@ class TriviaUiControllerTest {
 				.andExpect(content().string(containsString("What is H2O?")))
 				.andExpect(content().string(containsString("name=\"answers[0].answer\"")))
 				.andExpect(content().string(containsString("value=\"question-1\"")))
-				.andExpect(content().string(containsString("<script defer src=\"/js/quiz.js\"></script>")))
+				.andExpect(content().string(containsString("<script defer src=\"/js/global.js\"></script>")))
 				.andExpect(content().string(not(containsString("<main class=\"max-w-4xl mx-auto p-4\">\n<script>"))))
 				.andExpect(content().string(not(containsString("document.addEventListener(\"DOMContentLoaded\""))))
 				.andExpect(content().string(not(containsString("correctAnswer"))))
 				.andExpect(content().string(not(containsString("token"))))
 				.andExpect(content().string(not(containsString("debug"))));
+	}
+
+	@Test
+	void postQuestionsPassesSelectedCategoryToService() throws Exception {
+		when(quizService.createQuiz(5, 18)).thenReturn(new QuizResponse(
+				"quiz-123",
+				List.of(new QuestionResponse(
+						"question-1",
+						"multiple",
+						"medium",
+						"Science: Computers",
+						"What does CPU stand for?",
+						List.of("Central Processing Unit", "Computer Personal Unit")))));
+
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5")
+				.param("category", "18"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("quiz"))
+				.andExpect(content().string(containsString("Science: Computers")));
+
+		verify(quizService).createQuiz(5, 18);
 	}
 
 	@Test
@@ -119,6 +144,18 @@ class TriviaUiControllerTest {
 				.with(csrf())
 				.contentType(APPLICATION_FORM_URLENCODED)
 				.param("amount", "51"))
+				.andExpect(status().isBadRequest())
+				.andExpect(view().name("error"))
+				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
+	}
+
+	@Test
+	void postQuestionsRejectsNonPositiveCategoriesWithFriendlyMessage() throws Exception {
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5")
+				.param("category", "0"))
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("error"))
 				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));

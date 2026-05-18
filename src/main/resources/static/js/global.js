@@ -1,4 +1,4 @@
-const form = document.querySelector("[data-question-form]");
+const form = document.querySelector("[data-question-form], [data-answer-form]");
 const submitButton = form?.querySelector("[data-submit-button]");
 const idleLabel = submitButton?.querySelector("[data-idle-label]");
 const loadingLabel = submitButton?.querySelector("[data-loading-label]");

@@ -27,7 +27,7 @@ class SecurityConfigTest {
 
 	@Test
 	void staticJavascriptIsAccessibleWithoutAuthentication() throws Exception {
-		mockMvc.perform(get("/js/home.js"))
+		mockMvc.perform(get("/js/global.js"))
 				.andExpect(status().isOk());
 	}
 

@@ -5,9 +5,11 @@ test("user can start and submit a safe trivia round", async ({ page }) => {
 
   await expect(page.locator("main")).toHaveClass(/max-w-4xl mx-auto/);
   await expect(page.locator('head script[src="/js/global.js"][defer]')).toHaveCount(1);
+  await page.getByLabel("Categorie").selectOption("18");
   await page.getByRole("button", { name: "Start ronde" }).click();
 
   await expect(page.getByRole("heading", { name: "Trivia ronde" })).toBeVisible();
+  await expect(page.getByText("Science: Computers")).toBeVisible();
   await expect(page.getByText("What is H2O?")).toBeVisible();
   await expect(page.locator('head script[src="/js/global.js"][defer]')).toHaveCount(1);
 

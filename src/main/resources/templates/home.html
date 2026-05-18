@@ -26,6 +26,16 @@
                 <input id="amount" name="amount" type="number" min="1" max="10" value="5"
                        class="w-36 rounded-xl border-2 border-cyan-950 bg-white px-3 py-2 text-base shadow-[4px_4px_0_#083344]">
             </label>
+            <label for="category" class="flex flex-col gap-2 text-sm font-semibold">
+                Categorie
+                <select id="category" name="category"
+                        class="w-72 rounded-xl border-2 border-cyan-950 bg-white px-3 py-2 text-base shadow-[4px_4px_0_#083344]">
+                    <option value="">Any Category</option>
+                    <option th:each="category : ${categories}"
+                            th:value="${category.id()}"
+                            th:text="${category.displayName()}">Science: Computers</option>
+                </select>
+            </label>
             <button type="submit"
                     class="inline-flex items-center gap-3 rounded-xl border-2 border-cyan-950 bg-amber-600 px-5 py-3 font-bold text-neutral-100 shadow-[4px_4px_0_#083344] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#083344] disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_#083344]"
                     data-submit-button>
@@ -37,26 +47,5 @@
         </form>
     </section>
 </main>
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const form = document.querySelector("[data-question-form]");
-        const submitButton = form?.querySelector("[data-submit-button]");
-        const idleLabel = submitButton?.querySelector("[data-idle-label]");
-        const loadingLabel = submitButton?.querySelector("[data-loading-label]");
-        const loadingIndicator = submitButton?.querySelector("[data-loading-indicator]");
-
-        if (!form || !submitButton || !idleLabel || !loadingLabel || !loadingIndicator) {
-            return;
-        }
-
-        form.addEventListener("submit", () => {
-            submitButton.disabled = true;
-            submitButton.setAttribute("aria-busy", "true");
-            idleLabel.classList.add("hidden");
-            loadingLabel.classList.remove("hidden");
-            loadingIndicator.classList.remove("hidden");
-        });
-    });
-</script>
 </body>
 </html>
