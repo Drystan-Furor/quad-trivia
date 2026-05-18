@@ -15,7 +15,6 @@ public class InMemoryQuizSessionStore {
 	private final Map<String, QuizSession> sessions = new ConcurrentHashMap<>();
 	private final Clock clock;
 
-	@Autowired
 	public InMemoryQuizSessionStore() {
 		this(Clock.systemUTC());
 	}
