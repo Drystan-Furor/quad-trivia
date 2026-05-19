@@ -19,11 +19,12 @@ Allow the app time to start up if it was not used in the last 30 minutes.
 
 - Java 25
 - Node.js and npm for Playwright e2e tests
-- Docker Desktop 
+- Docker Desktop && Docker Compose
 
 > NOTE: It still compiles with Java 21
 
-## Build
+## Builds
+### Spring build
 
 ```bash
 ./mvnw clean test
@@ -44,6 +45,16 @@ To point the app at another Open Trivia compatible endpoint:
 ```bash
 ./mvnw spring-boot:run -Dspring-boot.run.arguments="--open-trivia.base-url=http://127.0.0.1:8098"
 ```
+### Docker build
+
+
+```sh
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
+```
+The default application URL is http://localhost:4361/
+
 
 ## Test
 
