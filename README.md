@@ -3,6 +3,11 @@
 Spring Boot trivia application backed by Open Trivia DB. The application keeps answer checking, quiz state, and
 Open Trivia session tokens on the server so the browser never receives the correct answers before submission.
 
+> This is an assesment repo for [Quad Solutions Assignemnt](https://www.quad.team/assignment)
+
+>The application contacts TriviaDB API, more documentation: [Open Trivia DB](https://opentdb.com/api_config.php)
+
+--- 
 ## Live demo
 A deployed version is live on cloud platform [Render](https://render.com/) using Dockerfile.
 This free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
@@ -15,22 +20,25 @@ Go to the [live demo here](https://quad-trivia-n5bu.onrender.com)
 The free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
 Allow the app time to start up if it was not used in the last 30 minutes.
 
-## Requirements
+---
+
+## Builds
+
+There is Spring Boot App and docker Compose with Docker Desktop choices:
+
+### Requirements
 
 - Java 25
 - Node.js and npm for Playwright e2e tests
 - Docker Desktop && Docker Compose
 
-> NOTE: It still compiles with Java 21
-
-## Builds
 ### Spring build
 
 ```bash
 ./mvnw clean test
 ```
 
-## Run
+### Run
 
 Start the application against the real Open Trivia DB API:
 
@@ -45,8 +53,11 @@ To point the app at another Open Trivia compatible endpoint:
 ```bash
 ./mvnw spring-boot:run -Dspring-boot.run.arguments="--open-trivia.base-url=http://127.0.0.1:8098"
 ```
+
+
 ### Docker build
 
+build the container and run it:
 
 ```sh
 docker compose down -v
@@ -54,6 +65,8 @@ docker compose build --no-cache
 docker compose up -d
 ```
 The default application URL is http://localhost:4361/
+
+---
 
 
 ## Test
@@ -76,6 +89,8 @@ Install the browser dependency first if needed:
 ```bash
 npm run e2e:install
 ```
+
+---
 
 ## Application Flow
 
