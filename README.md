@@ -3,10 +3,25 @@
 Spring Boot trivia application backed by Open Trivia DB. The application keeps answer checking, quiz state, and
 Open Trivia session tokens on the server so the browser never receives the correct answers before submission.
 
+## Live demo
+A deployed version is live on cloud platform [Render](https://render.com/) using Dockerfile.
+This free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
+Due to this, the app needs time to start up if it was not used in the last 30 minutes.
+
+Go to the [live demo here](https://quad-trivia-n5bu.onrender.com)
+
+> https://quad-trivia-n5bu.onrender.com
+
+The free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
+Allow the app time to start up if it was not used in the last 30 minutes.
+
 ## Requirements
 
-- Java 21
+- Java 25
 - Node.js and npm for Playwright e2e tests
+- Docker Desktop 
+
+> NOTE: It still compiles with Java 21
 
 ## Build
 
