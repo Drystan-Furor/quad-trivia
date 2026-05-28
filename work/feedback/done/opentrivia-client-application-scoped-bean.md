@@ -16,7 +16,7 @@ Sommige beans hadden eenvoudiger opgezet kunnen worden. `OpenTriviaClient` lijkt
 - Consumers injecteren de client via constructor injection.
 - Tests kunnen de client mocken met `@MockBean` of Mockito zonder handmatige wiring.
 - Runtimegedrag van trivia-ophalingen blijft gelijk.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- work/feedback/opentrivia-client-application-scoped-bean.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: voeg een Spring context test toe die verifieert dat `OpenTriviaClient` als bean beschikbaar is.
