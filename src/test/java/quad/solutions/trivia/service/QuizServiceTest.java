@@ -14,10 +14,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -119,9 +123,10 @@ class QuizServiceTest {
 		verify(openTriviaClient).fetchQuestions(1, 18);
 	}
 
-	@Test
-	void createQuizRejectsNonPositiveCategories() {
-		assertThatThrownBy(() -> quizService.createQuiz(1, 0))
+	@ParameterizedTest
+	@MethodSource("invalidQuizRequests")
+	void createQuizRejectsInvalidQuizRequestParameters(int amount, Integer category) {
+		assertThatThrownBy(() -> quizService.createQuiz(amount, category))
 				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
 					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
 					assertThat(exception.getReason()).isEqualTo("Invalid request parameters");
@@ -324,6 +329,13 @@ class QuizServiceTest {
 		assertThat(recordType.getRecordComponents())
 				.extracting(RecordComponent::getName)
 				.doesNotContain(fieldNames);
+	}
+
+	private static Stream<Arguments> invalidQuizRequests() {
+		return Stream.of(
+				Arguments.of(0, null),
+				Arguments.of(51, null),
+				Arguments.of(1, 0));
 	}
 
 }

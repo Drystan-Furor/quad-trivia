@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -23,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import quad.solutions.trivia.client.OpenTriviaRateLimitException;
 import quad.solutions.trivia.dto.AnswerResultResponse;
@@ -140,6 +142,9 @@ class TriviaUiControllerTest {
 
 	@Test
 	void postQuestionsRejectsInvalidAmountsWithFriendlyMessage() throws Exception {
+		when(quizService.createQuiz(51, null))
+				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
+
 		mockMvc.perform(post("/questions")
 				.with(csrf())
 				.contentType(APPLICATION_FORM_URLENCODED)
@@ -151,6 +156,9 @@ class TriviaUiControllerTest {
 
 	@Test
 	void postQuestionsRejectsNonPositiveCategoriesWithFriendlyMessage() throws Exception {
+		when(quizService.createQuiz(5, 0))
+				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
+
 		mockMvc.perform(post("/questions")
 				.with(csrf())
 				.contentType(APPLICATION_FORM_URLENCODED)

@@ -2,9 +2,10 @@ package quad.solutions.trivia.controller;
 
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import quad.solutions.trivia.client.OpenTriviaClientException;
 import quad.solutions.trivia.client.OpenTriviaRateLimitException;
@@ -118,6 +120,9 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsRejectsAmountsAboveTheSupportedLimit() throws Exception {
+		when(quizService.createQuiz(51, null))
+				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
+
 		mockMvc.perform(get("/questions").param("amount", "51"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
@@ -125,6 +130,9 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsRejectsNonPositiveCategories() throws Exception {
+		when(quizService.createQuiz(5, 0))
+				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
+
 		mockMvc.perform(get("/questions").param("category", "0"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
