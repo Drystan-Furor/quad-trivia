@@ -15,7 +15,7 @@ Mappinglogica had beter gescheiden kunnen worden. Wanneer mapping door services 
 - Niet-triviale mapping heeft eigen tests.
 - Services bevatten geen verspreide veld-voor-veld transformaties.
 - Mappercode is stateless en eenvoudig te gebruiken.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- work/feedback/mappinglogica-scheiden.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf mappertests voor bestaande transformaties en edge cases.

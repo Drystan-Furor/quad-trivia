@@ -9,28 +9,24 @@ import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import quad.solutions.trivia.client.OpenTriviaClient;
-import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
-import quad.solutions.trivia.dto.QuestionResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.mapper.QuizMapper;
 import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
@@ -46,14 +42,16 @@ public class QuizService {
 	private final InMemoryQuizSessionStore quizSessionStore;
 	private final Clock clock;
 	private final Validator validator;
+	private final QuizMapper quizMapper;
 	private Instant lastQuizCreatedAt;
 
 	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock,
-			Validator validator) {
+			Validator validator, QuizMapper quizMapper) {
 		this.openTriviaClient = openTriviaClient;
 		this.quizSessionStore = quizSessionStore;
 		this.clock = clock;
 		this.validator = validator;
+		this.quizMapper = quizMapper;
 	}
 
 	public QuizResponse createQuiz(int amount, Integer category) {
@@ -61,25 +59,12 @@ public class QuizService {
 		enforceQuizCreationGuard();
 		List<TriviaQuestion> upstreamQuestions = openTriviaClient.fetchQuestions(amount, category);
 		String quizId = UUID.randomUUID().toString();
-		List<QuestionResponse> safeQuestions = new ArrayList<>();
-		List<StoredQuestion> storedQuestions = new ArrayList<>();
-
-		for (TriviaQuestion upstreamQuestion : upstreamQuestions) {
-			String questionId = UUID.randomUUID().toString();
-			List<String> sanitizedOptions = sanitizeOptions(upstreamQuestion);
-
-			safeQuestions.add(new QuestionResponse(
-					questionId,
-					sanitize(upstreamQuestion.type()),
-					sanitize(upstreamQuestion.difficulty()),
-					sanitize(upstreamQuestion.category()),
-					sanitize(upstreamQuestion.question()),
-					sanitizedOptions));
-			storedQuestions.add(new StoredQuestion(
-					questionId,
-					sanitize(upstreamQuestion.correctAnswer()),
-					List.copyOf(sanitizedOptions)));
-		}
+		List<QuizMapper.IssuedQuestion> issuedQuestions = upstreamQuestions.stream()
+				.map(upstreamQuestion -> quizMapper.toIssuedQuestion(upstreamQuestion, UUID.randomUUID().toString()))
+				.toList();
+		List<StoredQuestion> storedQuestions = issuedQuestions.stream()
+				.map(QuizMapper.IssuedQuestion::storedQuestion)
+				.toList();
 
 		Instant issuedAt = Instant.now(clock);
 		quizSessionStore.save(new QuizSession(
@@ -88,7 +73,9 @@ public class QuizService {
 				issuedAt,
 				issuedAt.plus(QUIZ_TTL),
 				false));
-		return new QuizResponse(quizId, List.copyOf(safeQuestions));
+		return new QuizResponse(quizId, issuedQuestions.stream()
+				.map(QuizMapper.IssuedQuestion::response)
+				.toList());
 	}
 
 	public CheckAnswersResponse checkAnswers(CheckAnswersRequest request) {
@@ -113,15 +100,9 @@ public class QuizService {
 						AnswerSubmissionRequest::answer,
 						(first, second) -> second));
 
-		List<AnswerResultResponse> results = quizSession.questions().stream()
-				.map(question -> new AnswerResultResponse(
-						question.id(),
-						question.correctAnswer().equals(submittedAnswers.get(question.id()))))
-				.toList();
-
-		int score = (int) results.stream().filter(AnswerResultResponse::correct).count();
+		CheckAnswersResponse response = quizMapper.toCheckAnswersResponse(quizSession.questions(), submittedAnswers);
 		quizSessionStore.save(quizSession.markUsed());
-		return new CheckAnswersResponse(score, quizSession.questions().size(), results);
+		return response;
 	}
 
 	private void validateQuizRequest(int amount, Integer category) {
@@ -195,18 +176,6 @@ public class QuizService {
 				throw new ResponseStatusException(BAD_REQUEST, "Submitted answers must match the issued quiz options");
 			}
 		}
-	}
-
-	private List<String> sanitizeOptions(TriviaQuestion upstreamQuestion) {
-		return Stream.concat(
-				Stream.of(upstreamQuestion.correctAnswer()),
-				upstreamQuestion.incorrectAnswers().stream())
-				.map(this::sanitize)
-				.toList();
-	}
-
-	private String sanitize(String value) {
-		return value == null ? null : HtmlUtils.htmlEscape(value);
 	}
 
 }

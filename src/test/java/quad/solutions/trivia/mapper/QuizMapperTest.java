@@ -1,0 +1,65 @@
+package quad.solutions.trivia.mapper;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+
+import quad.solutions.trivia.dto.AnswerResultResponse;
+import quad.solutions.trivia.dto.CheckAnswersResponse;
+import quad.solutions.trivia.model.TriviaQuestion;
+import quad.solutions.trivia.session.StoredQuestion;
+
+class QuizMapperTest {
+
+	private final QuizMapper quizMapper = new QuizMapper();
+
+	@Test
+	void toIssuedQuestionSanitizesQuestionResponseAndStoredQuestion() {
+		TriviaQuestion question = new TriviaQuestion(
+				"multiple",
+				"hard",
+				"Science & Nature",
+				"<script>alert('x')</script> & already decoded",
+				"<b>Water</b>",
+				List.of("<i>Fire</i>", "Earth & Wind", "\"Air\""));
+
+		QuizMapper.IssuedQuestion issuedQuestion = quizMapper.toIssuedQuestion(question, "question-1");
+
+		assertThat(issuedQuestion.response().id()).isEqualTo("question-1");
+		assertThat(issuedQuestion.response().type()).isEqualTo("multiple");
+		assertThat(issuedQuestion.response().difficulty()).isEqualTo("hard");
+		assertThat(issuedQuestion.response().category()).isEqualTo("Science &amp; Nature");
+		assertThat(issuedQuestion.response().question())
+				.isEqualTo("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; already decoded");
+		assertThat(issuedQuestion.response().options()).containsExactly(
+				"&lt;b&gt;Water&lt;/b&gt;",
+				"&lt;i&gt;Fire&lt;/i&gt;",
+				"Earth &amp; Wind",
+				"&quot;Air&quot;");
+		assertThat(issuedQuestion.storedQuestion()).isEqualTo(new StoredQuestion(
+				"question-1",
+				"&lt;b&gt;Water&lt;/b&gt;",
+				List.of("&lt;b&gt;Water&lt;/b&gt;", "&lt;i&gt;Fire&lt;/i&gt;", "Earth &amp; Wind", "&quot;Air&quot;")));
+	}
+
+	@Test
+	void toCheckAnswersResponseMapsStoredQuestionsToScoreAndResultFlags() {
+		List<StoredQuestion> questions = List.of(
+				new StoredQuestion("question-1", "Water", List.of("Water", "Fire")),
+				new StoredQuestion("question-2", "Earth", List.of("Earth", "Air")));
+
+		CheckAnswersResponse response = quizMapper.toCheckAnswersResponse(questions, Map.of(
+				"question-1", "Water",
+				"question-2", "Air"));
+
+		assertThat(response.score()).isEqualTo(1);
+		assertThat(response.totalQuestions()).isEqualTo(2);
+		assertThat(response.results()).containsExactly(
+				new AnswerResultResponse("question-1", true),
+				new AnswerResultResponse("question-2", false));
+	}
+
+}

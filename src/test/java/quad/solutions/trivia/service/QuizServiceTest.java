@@ -37,6 +37,7 @@ import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.mapper.QuizMapper;
 import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
@@ -58,6 +59,9 @@ class QuizServiceTest {
 	@Spy
 	private InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore(
 			Clock.fixed(DEFAULT_INSTANT, ZoneOffset.UTC));
+
+	@Spy
+	private QuizMapper quizMapper = new QuizMapper();
 
 	@InjectMocks
 	private QuizService quizService;
@@ -144,7 +148,7 @@ class QuizServiceTest {
 	void createQuizAssignsExpectedSessionTtl() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new TriviaQuestion(
@@ -322,7 +326,7 @@ class QuizServiceTest {
 	void createQuizRejectsRequestsThatExceedLocalRateGuard() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new TriviaQuestion(
