@@ -15,7 +15,7 @@ De applicatie werkte lokaal niet in Docker. De vermoedelijke oorzaak is dat de M
 - Docker build/start gebruikt `./mvnw` succesvol in een Linux container.
 - `mvnw` heeft LF-line endings en is executable waar nodig.
 - De fix is vastgelegd zodat Windows/macOS edits dit niet opnieuw breken.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- docker-maven-wrapper-line-endings.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: voeg een reproduceerbare Docker-verificatie toe of documenteer het falende commando als teststap.
