@@ -15,6 +15,7 @@ Mocks worden handmatig opgebouwd en geïnjecteerd. Dit maakt tests langdradig en
 - Unit tests initialiseren mocks via MockitoExtension.
 - Spring tests gebruiken Spring test support in plaats van eigen wiring.
 - Testcode blijft expliciet genoeg om dependencies te begrijpen.
+- FILE is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: zorg dat bestaande gedragstests de huidige functionaliteit afdekken.

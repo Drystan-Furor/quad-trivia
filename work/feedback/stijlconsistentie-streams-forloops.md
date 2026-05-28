@@ -15,6 +15,7 @@ Er zit inconsistentie in stijlkeuzes zoals streams versus for-loops. Dit maakt d
 - Vergelijkbare codepaden gebruiken dezelfde stijl.
 - Leesbaarheid gaat boven het afdwingen van streams of loops.
 - Functioneel gedrag blijft ongewijzigd.
+- FILE is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: behoud bestaande tests als characterization suite voor de betrokken code.

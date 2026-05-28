@@ -16,6 +16,8 @@ Dependency injection lijkt niet overal goed begrepen of consequent toegepast. Di
 - Tests hoeven geen productiewiring te dupliceren.
 - Er zijn geen nieuwe test-only constructors nodig.
 - Bestaande functionaliteit blijft gelijk.
+- dependency-injection-consistentie.md is als laatste stap verplaatst naar work/feedback/done
+
 
 ## TDD Aanpak
 1. Red: voeg of actualiseer een context-load test die de relevante Spring beans via de application context opstart.

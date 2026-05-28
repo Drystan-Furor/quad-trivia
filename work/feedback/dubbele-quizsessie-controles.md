@@ -15,6 +15,7 @@ Er lijken dubbele controles rondom quizsessies te bestaan. Dit kan leiden tot co
 - Elke quizsessie-invariant heeft een primaire eigenaar.
 - Dubbele controles zijn verwijderd of aantoonbaar boundary-validatie.
 - Foutgedrag voor ontbrekende of ongeldige sessies is getest.
+- FILE is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf tests voor ontbrekende, verlopen of ongeldig gebruikte quizsessies.

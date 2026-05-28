@@ -16,6 +16,7 @@ Veel logica wordt handmatig uitgeprogrammeerd terwijl Spring of Bean Validation 
 - Controllers of handlers bevatten geen duplicatieve null/blank/range checks wanneer annotaties volstaan.
 - Foutresponses blijven voorspelbaar en getest.
 - Businessregels blijven expliciet in de juiste laag.
+- FILE is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf controller- of validation-tests voor ongeldige requests.

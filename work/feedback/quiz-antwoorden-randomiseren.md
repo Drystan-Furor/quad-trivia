@@ -16,6 +16,7 @@ Binnen de quiz wordt steeds het juiste antwoord als eerste getoond. Daardoor kan
 - Alle antwoorden blijven aanwezig en exact een antwoord is correct.
 - Scoring blijft correct na randomisatie.
 - Tests zijn deterministisch en niet flaky.
+- FILE is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf een test die faalt wanneer het correcte antwoord altijd als eerste wordt aangeboden.

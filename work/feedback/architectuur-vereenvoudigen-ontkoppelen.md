@@ -16,6 +16,8 @@ De architectuur voelt op meerdere plekken onnodig complex of sterk gekoppeld. Da
 - Tests voor kernlogica kunnen met minimale dependencies draaien.
 - Er is geen nieuwe abstractie zonder directe use case.
 - Publieke API-contracten blijven stabiel tenzij expliciet aangepast.
+- architectuur-vereenvoudigen-ontkoppelen.md is als laatste stap verplaatst naar work/feedback/done
+
 
 ## TDD Aanpak
 1. Red: schrijf characterization tests voor het bestaande gedrag van de gekoppelde flow.

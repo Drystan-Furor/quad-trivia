@@ -15,6 +15,7 @@ Validatie wordt op meerdere plekken dubbel uitgevoerd. Dit vergroot onderhoudsla
 - Elke validatieregel heeft een enkele primaire locatie.
 - Tests bewijzen dat invalid input nog steeds wordt afgewezen.
 - Dubbele foutpaden voor dezelfde regel zijn verwijderd of expliciet gemotiveerd.
+- FILE is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf parametrized tests voor de dubbele validatieregels en de verwachte foutrespons.
