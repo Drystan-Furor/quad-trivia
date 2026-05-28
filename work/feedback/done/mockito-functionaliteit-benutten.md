@@ -15,7 +15,7 @@ Mockito-functionaliteit wordt nauwelijks benut. Hierdoor ontstaan handmatige tes
 - Tests maken collaborators duidelijk via Mockito-annotaties of expliciete `mock(...)` calls.
 - Interacties worden geverifieerd waar dat onderdeel van het gedrag is.
 - Testsetup bevat minder handmatige boilerplate.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- work/feedback/mockito-functionaliteit-benutten.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: behoud of schrijf gedragstests die falen wanneer collaborator-interacties ontbreken.

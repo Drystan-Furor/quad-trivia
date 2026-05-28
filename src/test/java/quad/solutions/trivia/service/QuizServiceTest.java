@@ -3,6 +3,8 @@ package quad.solutions.trivia.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
@@ -114,6 +116,7 @@ class QuizServiceTest {
 
 		assertThat(response.questions()).singleElement().satisfies(question ->
 				assertThat(question.category()).isEqualTo("Science: Computers"));
+		verify(openTriviaClient).fetchQuestions(1, 18);
 	}
 
 	@Test
@@ -123,6 +126,7 @@ class QuizServiceTest {
 					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
 					assertThat(exception.getReason()).isEqualTo("Invalid request parameters");
 				});
+		verifyNoInteractions(openTriviaClient);
 	}
 
 	@Test
@@ -193,6 +197,7 @@ class QuizServiceTest {
 			assertThat(result.correct()).isTrue();
 		});
 		assertThat(quizSessionStore.findById(quiz.quizId())).get().extracting(QuizSession::used).isEqualTo(true);
+		verify(openTriviaClient).fetchQuestions(1, null);
 	}
 
 	@Test
