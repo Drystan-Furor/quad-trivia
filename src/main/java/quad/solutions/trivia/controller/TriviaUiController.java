@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import quad.solutions.trivia.dto.CheckAnswersForm;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuizResponse;
@@ -19,13 +21,10 @@ import quad.solutions.trivia.service.QuizService;
 
 @Controller
 @Validated
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 class TriviaUiController {
 
 	private final QuizService quizService;
-
-	TriviaUiController(QuizService quizService) {
-		this.quizService = quizService;
-	}
 
 	@PostMapping(value = "/questions", consumes = APPLICATION_FORM_URLENCODED_VALUE)
 	String startQuiz(@RequestParam(defaultValue = "5") @Min(1) @Max(50) int amount,

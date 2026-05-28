@@ -12,6 +12,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 public class OpenTriviaClient {
 
 	private static final int SUCCESS = 0;
@@ -25,11 +28,6 @@ public class OpenTriviaClient {
 
 	private String sessionToken;
 	private Instant lastTokenActivityAt;
-
-	public OpenTriviaClient(RestClient restClient, Clock clock) {
-		this.restClient = restClient;
-		this.clock = clock;
-	}
 
 	public List<OpenTriviaQuestion> fetchQuestions(int amount, Integer category) {
 		validateAmount(amount);

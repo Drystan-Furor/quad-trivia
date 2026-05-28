@@ -6,7 +6,11 @@ import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class CheckAnswersForm {
 
 	@NotBlank(message = "Quiz session is required")
@@ -15,22 +19,6 @@ public class CheckAnswersForm {
 	@Valid
 	@NotEmpty(message = "At least one answer is required")
 	private List<AnswerSubmissionForm> answers = new ArrayList<>();
-
-	public String getQuizId() {
-		return quizId;
-	}
-
-	public void setQuizId(String quizId) {
-		this.quizId = quizId;
-	}
-
-	public List<AnswerSubmissionForm> getAnswers() {
-		return answers;
-	}
-
-	public void setAnswers(List<AnswerSubmissionForm> answers) {
-		this.answers = answers;
-	}
 
 	public CheckAnswersRequest toRequest() {
 		List<AnswerSubmissionRequest> submittedAnswers = answers == null ? List.of() : answers.stream()
