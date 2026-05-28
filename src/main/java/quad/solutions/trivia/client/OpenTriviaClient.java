@@ -29,6 +29,7 @@ public class OpenTriviaClient {
 	private final RestClient restClient;
 	private final Clock clock;
 
+	// Open Trivia DB tokens are stateful and can expire or drain between requests.
 	private String sessionToken;
 	private Instant lastTokenActivityAt;
 

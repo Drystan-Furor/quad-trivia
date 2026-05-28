@@ -43,6 +43,7 @@ public class QuizService {
 	private final Clock clock;
 	private final Validator validator;
 	private final QuizMapper quizMapper;
+	// QuizService is a singleton; CAS keeps the local rate guard atomic without locking the upstream fetch.
 	private final AtomicReference<Instant> lastQuizCreatedAt = new AtomicReference<>();
 
 	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock,

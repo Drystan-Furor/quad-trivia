@@ -15,7 +15,7 @@ Er zijn meerdere ontwerpkeuzes waarvan de noodzaak niet duidelijk werd. Onverkla
 - Elke behouden niet-triviale ontwerpkeuze heeft testdekking of korte motivatie.
 - Onnodige complexiteit wordt vereenvoudigd.
 - Nieuwe comments verklaren waarom, niet wat de code doet.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- work/feedback/ontwerpkeuzes-noodzaak-verduidelijken.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf tests die de veronderstelde noodzaak van de ontwerpkeuze vastleggen.

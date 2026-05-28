@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class InMemoryQuizSessionStore {
 
+	// The application-scoped store is shared by parallel web requests.
 	private final Map<String, QuizSession> sessions = new ConcurrentHashMap<>();
 	private final Clock clock;
 
