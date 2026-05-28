@@ -19,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import quad.solutions.trivia.model.TriviaQuestion;
+
 class OpenTriviaClientTest {
 
 	private RestClient.Builder restClientBuilder;
@@ -96,10 +98,10 @@ class OpenTriviaClientTest {
 
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		List<OpenTriviaQuestion> firstBatch = client.fetchQuestions(2, null);
-		List<OpenTriviaQuestion> secondBatch = client.fetchQuestions(1, 12);
+		List<TriviaQuestion> firstBatch = client.fetchQuestions(2, null);
+		List<TriviaQuestion> secondBatch = client.fetchQuestions(1, 12);
 		clock.advance(Duration.ofHours(6).plusSeconds(1));
-		List<OpenTriviaQuestion> thirdBatch = client.fetchQuestions(1, null);
+		List<TriviaQuestion> thirdBatch = client.fetchQuestions(1, null);
 
 		assertThat(firstBatch).singleElement().satisfies(question -> {
 			assertThat(question.question()).isEqualTo("What is H2O?");
@@ -153,9 +155,9 @@ class OpenTriviaClientTest {
 
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		List<OpenTriviaQuestion> questions = client.fetchQuestions(1, null);
+		List<TriviaQuestion> questions = client.fetchQuestions(1, null);
 
-		assertThat(questions).extracting(OpenTriviaQuestion::correctAnswer).containsExactly("Mars");
+		assertThat(questions).extracting(TriviaQuestion::correctAnswer).containsExactly("Mars");
 		server.verify();
 	}
 
@@ -194,9 +196,9 @@ class OpenTriviaClientTest {
 
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		List<OpenTriviaQuestion> questions = client.fetchQuestions(1, null);
+		List<TriviaQuestion> questions = client.fetchQuestions(1, null);
 
-		assertThat(questions).extracting(OpenTriviaQuestion::question)
+		assertThat(questions).extracting(TriviaQuestion::question)
 				.containsExactly("Does HTTP stand for HyperText Transfer Protocol?");
 		server.verify();
 	}

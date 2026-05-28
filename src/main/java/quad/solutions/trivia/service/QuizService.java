@@ -23,13 +23,13 @@ import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import quad.solutions.trivia.client.OpenTriviaClient;
-import quad.solutions.trivia.client.OpenTriviaQuestion;
 import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuestionResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
 import quad.solutions.trivia.session.StoredQuestion;
@@ -54,12 +54,12 @@ public class QuizService {
 	public QuizResponse createQuiz(int amount, Integer category) {
 		validateQuizRequest(amount, category);
 		enforceQuizCreationGuard();
-		List<OpenTriviaQuestion> upstreamQuestions = openTriviaClient.fetchQuestions(amount, category);
+		List<TriviaQuestion> upstreamQuestions = openTriviaClient.fetchQuestions(amount, category);
 		String quizId = UUID.randomUUID().toString();
 		List<QuestionResponse> safeQuestions = new ArrayList<>();
 		List<StoredQuestion> storedQuestions = new ArrayList<>();
 
-		for (OpenTriviaQuestion upstreamQuestion : upstreamQuestions) {
+		for (TriviaQuestion upstreamQuestion : upstreamQuestions) {
 			String questionId = UUID.randomUUID().toString();
 			List<String> sanitizedOptions = sanitizeOptions(upstreamQuestion);
 
@@ -177,7 +177,7 @@ public class QuizService {
 		}
 	}
 
-	private List<String> sanitizeOptions(OpenTriviaQuestion upstreamQuestion) {
+	private List<String> sanitizeOptions(TriviaQuestion upstreamQuestion) {
 		return Stream.concat(
 				Stream.of(upstreamQuestion.correctAnswer()),
 				upstreamQuestion.incorrectAnswers().stream())

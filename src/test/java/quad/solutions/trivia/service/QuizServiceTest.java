@@ -25,12 +25,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import quad.solutions.trivia.client.OpenTriviaClient;
-import quad.solutions.trivia.client.OpenTriviaQuestion;
 import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
 
@@ -60,7 +60,7 @@ class QuizServiceTest {
 	@Test
 	void createQuizDoesNotExposeCorrectAnswerFieldsInResponse() {
 		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"medium",
 						"Science & Nature",
@@ -81,7 +81,7 @@ class QuizServiceTest {
 	@Test
 	void createQuizStoresCorrectAnswersServerSide() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"boolean",
 						"easy",
 						"Music",
@@ -104,7 +104,7 @@ class QuizServiceTest {
 	@Test
 	void createQuizPassesSelectedCategoryToOpenTriviaClient() {
 		when(openTriviaClient.fetchQuestions(1, 18)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"easy",
 						"Science: Computers",
@@ -136,7 +136,7 @@ class QuizServiceTest {
 		QuizService service = new QuizService(openTriviaClient, store, fixedClock);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"boolean",
 						"easy",
 						"Music",
@@ -154,7 +154,7 @@ class QuizServiceTest {
 	@Test
 	void createQuizDecodesAndSanitizesQuestionTextAndOptions() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"hard",
 						"Science & Nature",
@@ -177,7 +177,7 @@ class QuizServiceTest {
 	@Test
 	void checkAnswersEvaluatesSubmittedAnswersAgainstServerSideSession() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"easy",
 						"Science",
@@ -203,7 +203,7 @@ class QuizServiceTest {
 	@Test
 	void checkAnswersReturnsOnlyScoreAndCorrectness() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"easy",
 						"Science",
@@ -228,7 +228,7 @@ class QuizServiceTest {
 	@Test
 	void checkAnswersRejectsRepeatedSubmissions() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"easy",
 						"Science",
@@ -250,14 +250,14 @@ class QuizServiceTest {
 	@Test
 	void checkAnswersRejectsIncompleteAnswerPayload() {
 		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"easy",
 						"Science",
 						"What is H2O?",
 						"Water",
 						List.of("Fire", "Earth", "Air")),
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"easy",
 						"Science",
@@ -278,7 +278,7 @@ class QuizServiceTest {
 	@Test
 	void checkAnswersRejectsAnswersForUnexpectedQuestionIds() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"multiple",
 						"easy",
 						"Science",
@@ -303,7 +303,7 @@ class QuizServiceTest {
 		QuizService service = new QuizService(openTriviaClient, store, fixedClock);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
-				new OpenTriviaQuestion(
+				new TriviaQuestion(
 						"boolean",
 						"easy",
 						"Music",

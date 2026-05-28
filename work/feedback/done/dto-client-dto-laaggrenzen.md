@@ -16,7 +16,7 @@ DTO's en client DTO's worden door meerdere lagen heen gebruikt. Dit koppelt dome
 - Controllers exposen alleen API DTO's die bij het eigen contract horen.
 - Services werken met interne modellen of duidelijke applicatie-DTO's.
 - Tests bewijzen dat externe DTO-vormwijziging niet alle lagen raakt.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- work/feedback/dto-client-dto-laaggrenzen.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf service-tests die interne modellen verwachten in plaats van client DTO's.

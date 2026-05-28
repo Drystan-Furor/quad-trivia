@@ -1,8 +1,8 @@
-package quad.solutions.trivia.client;
+package quad.solutions.trivia.model;
 
 import java.util.List;
 
-public record OpenTriviaQuestion(
+public record TriviaQuestion(
 		String type,
 		String difficulty,
 		String category,

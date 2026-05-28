@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import lombok.RequiredArgsConstructor;
+import quad.solutions.trivia.model.TriviaQuestion;
 
 @Component
 @RequiredArgsConstructor
@@ -31,7 +32,7 @@ public class OpenTriviaClient {
 	private String sessionToken;
 	private Instant lastTokenActivityAt;
 
-	public List<OpenTriviaQuestion> fetchQuestions(int amount, Integer category) {
+	public List<TriviaQuestion> fetchQuestions(int amount, Integer category) {
 		validateAmount(amount);
 		validateCategory(category);
 
@@ -155,8 +156,8 @@ public class OpenTriviaClient {
 		return builder.build(true).toUriString();
 	}
 
-	private OpenTriviaQuestion mapQuestion(TriviaQuestionPayload payload) {
-		return new OpenTriviaQuestion(
+	private TriviaQuestion mapQuestion(TriviaQuestionPayload payload) {
+		return new TriviaQuestion(
 				decode(payload.type()),
 				decode(payload.difficulty()),
 				decode(payload.category()),
