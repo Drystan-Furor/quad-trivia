@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -43,7 +44,7 @@ public class QuizService {
 	private final Clock clock;
 	private final Validator validator;
 	private final QuizMapper quizMapper;
-	private Instant lastQuizCreatedAt;
+	private final AtomicReference<Instant> lastQuizCreatedAt = new AtomicReference<>();
 
 	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock,
 			Validator validator, QuizMapper quizMapper) {
@@ -114,13 +115,18 @@ public class QuizService {
 		}
 	}
 
-	private synchronized void enforceQuizCreationGuard() {
+	private void enforceQuizCreationGuard() {
 		Instant now = Instant.now(clock);
-		if (lastQuizCreatedAt != null && lastQuizCreatedAt.plus(QUIZ_CREATION_GUARD_WINDOW).isAfter(now)) {
-			throw new ResponseStatusException(TOO_MANY_REQUESTS,
-					"Please wait a few seconds before starting another quiz.");
+		while (true) {
+			Instant previous = lastQuizCreatedAt.get();
+			if (previous != null && previous.plus(QUIZ_CREATION_GUARD_WINDOW).isAfter(now)) {
+				throw new ResponseStatusException(TOO_MANY_REQUESTS,
+						"Please wait a few seconds before starting another quiz.");
+			}
+			if (lastQuizCreatedAt.compareAndSet(previous, now)) {
+				return;
+			}
 		}
-		lastQuizCreatedAt = now;
 	}
 
 	private void validateAnswerRequest(CheckAnswersRequest request) {

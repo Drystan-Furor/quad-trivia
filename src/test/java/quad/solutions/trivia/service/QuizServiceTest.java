@@ -3,6 +3,7 @@ package quad.solutions.trivia.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -15,7 +16,13 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -344,6 +351,55 @@ class QuizServiceTest {
 					assertThat(exception.getStatusCode()).isEqualTo(TOO_MANY_REQUESTS);
 					assertThat(exception.getReason()).contains("Please wait");
 				});
+	}
+
+	@Test
+	void createQuizAllowsOnlyOneParallelRequestWithinRateGuardWindow() throws Exception {
+		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
+		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
+		int attempts = 16;
+
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+				new TriviaQuestion(
+						"boolean",
+						"easy",
+						"Music",
+						"Is Jazz a genre?",
+						"True",
+						List.of("False"))));
+
+		ExecutorService executor = Executors.newFixedThreadPool(attempts);
+		CountDownLatch ready = new CountDownLatch(attempts);
+		CountDownLatch start = new CountDownLatch(1);
+		try {
+			List<Future<Boolean>> results = IntStream.range(0, attempts)
+					.mapToObj(index -> executor.submit(() -> {
+						ready.countDown();
+						assertThat(start.await(1, TimeUnit.SECONDS)).isTrue();
+						try {
+							service.createQuiz(1, null);
+							return true;
+						}
+						catch (ResponseStatusException exception) {
+							assertThat(exception.getStatusCode()).isEqualTo(TOO_MANY_REQUESTS);
+							return false;
+						}
+					}))
+					.toList();
+
+			assertThat(ready.await(1, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+
+			assertThat(results)
+					.extracting(Future::get)
+					.containsOnlyOnce(true)
+					.contains(false);
+			verify(openTriviaClient, times(1)).fetchQuestions(1, null);
+		}
+		finally {
+			executor.shutdownNow();
+		}
 	}
 
 	private void assertRecordFieldsDoNotContain(Class<?> recordType, String... fieldNames) {

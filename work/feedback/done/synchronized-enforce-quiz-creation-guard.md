@@ -15,7 +15,7 @@ De noodzaak van `synchronized` bij `enforceQuizCreationGuard` is niet duidelijk.
 - Er is een test die het risico op dubbele quizcreatie of race conditions afdekt.
 - `synchronized` blijft alleen staan als de test de noodzaak aantoont.
 - Als het wordt verwijderd, blijft quizcreatie correct onder parallelle requests.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- work/feedback/synchronized-enforce-quiz-creation-guard.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf een concurrencytest die parallelle quizcreatie probeert te forceren.
