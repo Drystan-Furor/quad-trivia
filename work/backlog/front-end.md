@@ -1,5 +1,3 @@
-systems tests show possible improvements for user experience. draft tickets here.
-
 ## Story 1 - Move quiz page behavior into a static script
 
 **Status:** DONE

@@ -18,6 +18,3 @@ Oplevering
 Een link naar Github waar de broncode kan worden gevonden;
 Een README in de hoofdmap met instructies voor het bouwen en uitvoeren van de applicatie;
 Een link naar de werkende applicatie op een cloud-platform (optioneel).
-
----
-Als je een openapi spec hebt, kan je maven ipv webflux gebruiken om api calls te doen
