@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.HtmlUtils;
@@ -177,10 +178,11 @@ public class QuizService {
 	}
 
 	private List<String> sanitizeOptions(OpenTriviaQuestion upstreamQuestion) {
-		List<String> options = new ArrayList<>();
-		options.add(sanitize(upstreamQuestion.correctAnswer()));
-		options.addAll(upstreamQuestion.incorrectAnswers().stream().map(this::sanitize).toList());
-		return List.copyOf(options);
+		return Stream.concat(
+				Stream.of(upstreamQuestion.correctAnswer()),
+				upstreamQuestion.incorrectAnswers().stream())
+				.map(this::sanitize)
+				.toList();
 	}
 
 	private String sanitize(String value) {
