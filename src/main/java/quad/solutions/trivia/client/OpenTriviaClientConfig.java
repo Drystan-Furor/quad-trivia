@@ -21,9 +21,4 @@ class OpenTriviaClientConfig {
 		return builder.baseUrl(baseUrl).build();
 	}
 
-	@Bean
-	OpenTriviaClient openTriviaClient(RestClient openTriviaRestClient, Clock triviaClock) {
-		return new OpenTriviaClient(openTriviaRestClient, triviaClock);
-	}
-
 }
