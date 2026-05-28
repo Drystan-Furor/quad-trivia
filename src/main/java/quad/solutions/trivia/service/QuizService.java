@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import quad.solutions.trivia.client.OpenTriviaClient;
 import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
@@ -43,12 +45,15 @@ public class QuizService {
 	private final OpenTriviaClient openTriviaClient;
 	private final InMemoryQuizSessionStore quizSessionStore;
 	private final Clock clock;
+	private final Validator validator;
 	private Instant lastQuizCreatedAt;
 
-	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock) {
+	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock,
+			Validator validator) {
 		this.openTriviaClient = openTriviaClient;
 		this.quizSessionStore = quizSessionStore;
 		this.clock = clock;
+		this.validator = validator;
 	}
 
 	public QuizResponse createQuiz(int amount, Integer category) {
@@ -138,18 +143,33 @@ public class QuizService {
 	}
 
 	private void validateAnswerRequest(CheckAnswersRequest request) {
-		if (request == null || request.quizId() == null || request.quizId().isBlank()) {
+		if (request == null) {
 			throw new ResponseStatusException(BAD_REQUEST, "Quiz session is required");
 		}
-		if (request.answers() == null || request.answers().isEmpty()) {
+
+		Set<ConstraintViolation<CheckAnswersRequest>> violations = validator.validate(request);
+		if (violations.isEmpty()) {
+			return;
+		}
+
+		if (hasViolation(violations, "quizId")) {
+			throw new ResponseStatusException(BAD_REQUEST, "Quiz session is required");
+		}
+		if (hasViolation(violations, "answers")) {
 			throw new ResponseStatusException(BAD_REQUEST, "A complete answer set is required");
 		}
-		for (AnswerSubmissionRequest answer : request.answers()) {
-			if (answer == null || answer.questionId() == null || answer.questionId().isBlank()
-					|| answer.answer() == null || answer.answer().isBlank()) {
-				throw new ResponseStatusException(BAD_REQUEST, "Each answer must include a question id and selected answer");
-			}
+		if (violations.stream().map(violation -> violation.getPropertyPath().toString())
+				.anyMatch(path -> path.startsWith("answers["))) {
+			throw new ResponseStatusException(BAD_REQUEST, "Each answer must include a question id and selected answer");
 		}
+
+		throw new ResponseStatusException(BAD_REQUEST, "Invalid request payload");
+	}
+
+	private boolean hasViolation(Set<ConstraintViolation<CheckAnswersRequest>> violations, String propertyPath) {
+		return violations.stream()
+				.map(violation -> violation.getPropertyPath().toString())
+				.anyMatch(propertyPath::equals);
 	}
 
 	private void validateSubmittedAnswers(QuizSession quizSession, List<AnswerSubmissionRequest> answers) {

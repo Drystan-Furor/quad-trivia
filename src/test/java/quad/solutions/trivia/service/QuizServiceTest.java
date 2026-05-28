@@ -13,6 +13,7 @@ import java.lang.reflect.RecordComponent;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -28,6 +29,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import quad.solutions.trivia.client.OpenTriviaClient;
 import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
@@ -48,6 +51,9 @@ class QuizServiceTest {
 
 	@Mock
 	private Clock clock;
+
+	@Spy
+	private Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
 	@Spy
 	private InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore(
@@ -138,7 +144,7 @@ class QuizServiceTest {
 	void createQuizAssignsExpectedSessionTtl() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new TriviaQuestion(
@@ -252,6 +258,17 @@ class QuizServiceTest {
 				.hasMessageContaining("already been submitted");
 	}
 
+	@ParameterizedTest
+	@MethodSource("invalidAnswerRequests")
+	void checkAnswersRejectsInvalidRequestPayloads(CheckAnswersRequest request, String expectedReason) {
+		assertThatThrownBy(() -> quizService.checkAnswers(request))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
+					assertThat(exception.getReason()).isEqualTo(expectedReason);
+				});
+		verifyNoInteractions(openTriviaClient);
+	}
+
 	@Test
 	void checkAnswersRejectsIncompleteAnswerPayload() {
 		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
@@ -305,7 +322,7 @@ class QuizServiceTest {
 	void createQuizRejectsRequestsThatExceedLocalRateGuard() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new TriviaQuestion(
@@ -336,6 +353,21 @@ class QuizServiceTest {
 				Arguments.of(0, null),
 				Arguments.of(51, null),
 				Arguments.of(1, 0));
+	}
+
+	private static Stream<Arguments> invalidAnswerRequests() {
+		return Stream.of(
+				Arguments.of(null, "Quiz session is required"),
+				Arguments.of(new CheckAnswersRequest("", List.of(new AnswerSubmissionRequest("question-1", "Water"))),
+						"Quiz session is required"),
+				Arguments.of(new CheckAnswersRequest("quiz-1", null), "A complete answer set is required"),
+				Arguments.of(new CheckAnswersRequest("quiz-1", List.of()), "A complete answer set is required"),
+				Arguments.of(new CheckAnswersRequest("quiz-1", Collections.singletonList(null)),
+						"Each answer must include a question id and selected answer"),
+				Arguments.of(new CheckAnswersRequest("quiz-1", List.of(new AnswerSubmissionRequest("", "Water"))),
+						"Each answer must include a question id and selected answer"),
+				Arguments.of(new CheckAnswersRequest("quiz-1", List.of(new AnswerSubmissionRequest("question-1", " "))),
+						"Each answer must include a question id and selected answer"));
 	}
 
 }
