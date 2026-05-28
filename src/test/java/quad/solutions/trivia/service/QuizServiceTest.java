@@ -2,6 +2,7 @@ package quad.solutions.trivia.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
@@ -12,8 +13,13 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import quad.solutions.trivia.client.OpenTriviaClient;
@@ -26,12 +32,28 @@ import quad.solutions.trivia.dto.QuizResponse;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
 
+@ExtendWith(MockitoExtension.class)
 class QuizServiceTest {
 
-	private final OpenTriviaClient openTriviaClient = Mockito.mock(OpenTriviaClient.class);
-	private final Clock clock = Clock.systemUTC();
-	private final InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore(clock);
-	private final QuizService quizService = new QuizService(openTriviaClient, quizSessionStore, clock);
+	private static final Instant DEFAULT_INSTANT = Instant.parse("2026-05-14T10:20:00Z");
+
+	@Mock
+	private OpenTriviaClient openTriviaClient;
+
+	@Mock
+	private Clock clock;
+
+	@Spy
+	private InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore(
+			Clock.fixed(DEFAULT_INSTANT, ZoneOffset.UTC));
+
+	@InjectMocks
+	private QuizService quizService;
+
+	@BeforeEach
+	void setUpClock() {
+		lenient().when(clock.instant()).thenReturn(DEFAULT_INSTANT);
+	}
 
 	@Test
 	void createQuizDoesNotExposeCorrectAnswerFieldsInResponse() {
