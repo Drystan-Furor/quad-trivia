@@ -6,18 +6,19 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 
+import java.lang.reflect.RecordComponent;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.web.server.ResponseStatusException;
 
 import quad.solutions.trivia.client.OpenTriviaClient;
 import quad.solutions.trivia.client.OpenTriviaQuestion;
+import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
@@ -30,10 +31,9 @@ class QuizServiceTest {
 	private final OpenTriviaClient openTriviaClient = Mockito.mock(OpenTriviaClient.class);
 	private final InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore();
 	private final QuizService quizService = new QuizService(openTriviaClient, quizSessionStore);
-	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Test
-	void createQuizDoesNotExposeCorrectAnswersInResponse() throws Exception {
+	void createQuizDoesNotExposeCorrectAnswerFieldsInResponse() {
 		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
 				new OpenTriviaQuestion(
 						"multiple",
@@ -44,10 +44,9 @@ class QuizServiceTest {
 						List.of("Fire", "Earth", "Air"))));
 
 		QuizResponse response = quizService.createQuiz(2, null);
-		String json = objectMapper.writeValueAsString(response);
 
-		assertThat(json).doesNotContain("correctAnswer");
-		assertThat(json).doesNotContain("token");
+		assertRecordFieldsDoNotContain(QuizResponse.class, "correctAnswer", "token");
+		assertRecordFieldsDoNotContain(response.questions().getFirst().getClass(), "correctAnswer", "token");
 		assertThat(response.questions()).singleElement().satisfies(question -> {
 			assertThat(question.options()).containsExactly("Water", "Fire", "Earth", "Air");
 			assertThat(question.question()).isEqualTo("What is H2O?");
@@ -174,7 +173,7 @@ class QuizServiceTest {
 	}
 
 	@Test
-	void checkAnswersDoesNotExposeCorrectAnswersInResponse() throws Exception {
+	void checkAnswersReturnsOnlyScoreAndCorrectness() {
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new OpenTriviaQuestion(
 						"multiple",
@@ -188,12 +187,14 @@ class QuizServiceTest {
 		CheckAnswersResponse response = quizService.checkAnswers(new CheckAnswersRequest(
 				quiz.quizId(),
 				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "Fire"))));
-		String json = objectMapper.writeValueAsString(response);
 
-		assertThat(response.score()).isZero();
-		assertThat(json).doesNotContain("correctAnswer");
-		assertThat(json).doesNotContain("Water");
-		assertThat(json).doesNotContain("token");
+		assertThat(response).usingRecursiveComparison()
+				.isEqualTo(new CheckAnswersResponse(
+						0,
+						1,
+						List.of(new AnswerResultResponse(quiz.questions().getFirst().id(), false))));
+		assertRecordFieldsDoNotContain(CheckAnswersResponse.class, "correctAnswer", "answer", "token");
+		assertRecordFieldsDoNotContain(AnswerResultResponse.class, "correctAnswer", "answer", "token");
 	}
 
 	@Test
@@ -289,6 +290,12 @@ class QuizServiceTest {
 					assertThat(exception.getStatusCode()).isEqualTo(TOO_MANY_REQUESTS);
 					assertThat(exception.getReason()).contains("Please wait");
 				});
+	}
+
+	private void assertRecordFieldsDoNotContain(Class<?> recordType, String... fieldNames) {
+		assertThat(recordType.getRecordComponents())
+				.extracting(RecordComponent::getName)
+				.doesNotContain(fieldNames);
 	}
 
 }
