@@ -60,7 +60,7 @@ class QuestionControllerTest {
 						"medium",
 						"Science &amp; Nature",
 						"What is H2O?",
-						List.of("Water", "Fire", "Earth", "Air")))));
+						List.of("Fire", "Earth", "Air", "Water")))));
 
 		mockMvc.perform(get("/questions"))
 				.andExpect(status().isOk())
@@ -68,7 +68,8 @@ class QuestionControllerTest {
 				.andExpect(jsonPath("$.quizId").value("quiz-123"))
 				.andExpect(jsonPath("$.questions[0].id").value("question-1"))
 				.andExpect(jsonPath("$.questions[0].question").value("What is H2O?"))
-				.andExpect(jsonPath("$.questions[0].options[0]").value("Water"))
+				.andExpect(jsonPath("$.questions[0].options[0]").value("Fire"))
+				.andExpect(jsonPath("$.questions[0].options[3]").value("Water"))
 				.andExpect(jsonPath("$.questions[0].correctAnswer").doesNotExist())
 				.andExpect(jsonPath("$.token").doesNotExist());
 	}

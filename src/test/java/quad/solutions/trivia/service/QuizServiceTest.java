@@ -15,6 +15,7 @@ import java.lang.reflect.RecordComponent;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -65,7 +66,7 @@ class QuizServiceTest {
 	@BeforeEach
 	void setUpClock() {
 		quizSessionStore = new InMemoryQuizSessionStore(Clock.fixed(DEFAULT_INSTANT, ZoneOffset.UTC));
-		quizMapper = new QuizMapper();
+		quizMapper = new QuizMapper(QuizServiceTest::moveFirstAnswerToLast);
 		quizService = new QuizService(openTriviaClient, quizSessionStore, clock, quizMapper);
 		lenient().when(clock.instant()).thenReturn(DEFAULT_INSTANT);
 	}
@@ -86,7 +87,7 @@ class QuizServiceTest {
 		assertRecordFieldsDoNotContain(QuizResponse.class, "correctAnswer", "token");
 		assertRecordFieldsDoNotContain(response.questions().getFirst().getClass(), "correctAnswer", "token");
 		assertThat(response.questions()).singleElement().satisfies(question -> {
-			assertThat(question.options()).containsExactly("Water", "Fire", "Earth", "Air");
+			assertThat(question.options()).containsExactly("Fire", "Earth", "Air", "Water");
 			assertThat(question.question()).isEqualTo("What is H2O?");
 		});
 	}
@@ -110,7 +111,7 @@ class QuizServiceTest {
 		assertThat(storedQuiz.used()).isFalse();
 		assertThat(storedQuiz.questions()).singleElement().satisfies(question -> {
 			assertThat(question.correctAnswer()).isEqualTo("True");
-			assertThat(question.options()).containsExactly("True", "False");
+			assertThat(question.options()).containsExactly("False", "True");
 		});
 	}
 
@@ -181,10 +182,10 @@ class QuizServiceTest {
 		assertThat(response.questions()).singleElement().satisfies(question -> {
 			assertThat(question.question()).isEqualTo("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; already decoded");
 			assertThat(question.options()).containsExactly(
-					"&lt;b&gt;Water&lt;/b&gt;",
 					"&lt;i&gt;Fire&lt;/i&gt;",
 					"Earth &amp; Wind",
-					"&quot;Air&quot;");
+					"&quot;Air&quot;",
+					"&lt;b&gt;Water&lt;/b&gt;");
 		});
 	}
 
@@ -212,6 +213,28 @@ class QuizServiceTest {
 		});
 		assertThat(quizSessionStore.findById(quiz.quizId())).get().extracting(QuizSession::used).isEqualTo(true);
 		verify(openTriviaClient).fetchQuestions(1, null);
+	}
+
+	@Test
+	void checkAnswersScoresCorrectlyWhenCorrectAnswerWasNotPresentedFirst() {
+		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+				new TriviaQuestion(
+						"multiple",
+						"easy",
+						"Science",
+						"What is H2O?",
+						"Water",
+						List.of("Fire", "Earth", "Air"))));
+		QuizResponse quiz = quizService.createQuiz(1, null);
+
+		assertThat(quiz.questions().getFirst().options()).containsExactly("Fire", "Earth", "Air", "Water");
+
+		CheckAnswersResponse response = quizService.checkAnswers(new CheckAnswersRequest(
+				quiz.quizId(),
+				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "Water"))));
+
+		assertThat(response.score()).isEqualTo(1);
+		assertThat(response.results()).singleElement().extracting(AnswerResultResponse::correct).isEqualTo(true);
 	}
 
 	@Test
@@ -454,6 +477,12 @@ class QuizServiceTest {
 						"Each answer must include a question id and selected answer"),
 				Arguments.of(new CheckAnswersRequest("quiz-1", List.of(new AnswerSubmissionRequest("question-1", " "))),
 						"Each answer must include a question id and selected answer"));
+	}
+
+	private static List<String> moveFirstAnswerToLast(List<String> options) {
+		List<String> shuffled = new ArrayList<>(options);
+		Collections.rotate(shuffled, -1);
+		return shuffled;
 	}
 
 }

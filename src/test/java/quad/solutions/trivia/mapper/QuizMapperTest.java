@@ -2,6 +2,8 @@ package quad.solutions.trivia.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -14,10 +16,10 @@ import quad.solutions.trivia.session.StoredQuestion;
 
 class QuizMapperTest {
 
-	private final QuizMapper quizMapper = new QuizMapper();
+	private final QuizMapper quizMapper = new QuizMapper(QuizMapperTest::moveFirstAnswerToLast);
 
 	@Test
-	void toIssuedQuestionSanitizesQuestionResponseAndStoredQuestion() {
+	void toIssuedQuestionSanitizesAndShufflesQuestionResponseAndStoredQuestion() {
 		TriviaQuestion question = new TriviaQuestion(
 				"multiple",
 				"hard",
@@ -35,14 +37,17 @@ class QuizMapperTest {
 		assertThat(issuedQuestion.response().question())
 				.isEqualTo("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; already decoded");
 		assertThat(issuedQuestion.response().options()).containsExactly(
-				"&lt;b&gt;Water&lt;/b&gt;",
 				"&lt;i&gt;Fire&lt;/i&gt;",
 				"Earth &amp; Wind",
-				"&quot;Air&quot;");
+				"&quot;Air&quot;",
+				"&lt;b&gt;Water&lt;/b&gt;");
 		assertThat(issuedQuestion.storedQuestion()).isEqualTo(new StoredQuestion(
 				"question-1",
 				"&lt;b&gt;Water&lt;/b&gt;",
-				List.of("&lt;b&gt;Water&lt;/b&gt;", "&lt;i&gt;Fire&lt;/i&gt;", "Earth &amp; Wind", "&quot;Air&quot;")));
+				List.of("&lt;i&gt;Fire&lt;/i&gt;", "Earth &amp; Wind", "&quot;Air&quot;", "&lt;b&gt;Water&lt;/b&gt;")));
+		assertThat(issuedQuestion.response().options())
+				.containsExactlyInAnyOrder("&lt;b&gt;Water&lt;/b&gt;", "&lt;i&gt;Fire&lt;/i&gt;", "Earth &amp; Wind", "&quot;Air&quot;");
+		assertThat(issuedQuestion.response().options().getFirst()).isNotEqualTo(issuedQuestion.storedQuestion().correctAnswer());
 	}
 
 	@Test
@@ -60,6 +65,12 @@ class QuizMapperTest {
 		assertThat(response.results()).containsExactly(
 				new AnswerResultResponse("question-1", true),
 				new AnswerResultResponse("question-2", false));
+	}
+
+	private static List<String> moveFirstAnswerToLast(List<String> options) {
+		List<String> shuffled = new ArrayList<>(options);
+		Collections.rotate(shuffled, -1);
+		return shuffled;
 	}
 
 }
