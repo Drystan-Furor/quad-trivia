@@ -29,8 +29,9 @@ import quad.solutions.trivia.session.QuizSession;
 class QuizServiceTest {
 
 	private final OpenTriviaClient openTriviaClient = Mockito.mock(OpenTriviaClient.class);
-	private final InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore();
-	private final QuizService quizService = new QuizService(openTriviaClient, quizSessionStore);
+	private final Clock clock = Clock.systemUTC();
+	private final InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore(clock);
+	private final QuizService quizService = new QuizService(openTriviaClient, quizSessionStore, clock);
 
 	@Test
 	void createQuizDoesNotExposeCorrectAnswerFieldsInResponse() {

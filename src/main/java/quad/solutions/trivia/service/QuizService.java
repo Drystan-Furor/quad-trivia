@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -44,11 +43,6 @@ public class QuizService {
 	private final InMemoryQuizSessionStore quizSessionStore;
 	private final Clock clock;
 	private Instant lastQuizCreatedAt;
-
-	@Autowired
-	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore) {
-		this(openTriviaClient, quizSessionStore, Clock.systemUTC());
-	}
 
 	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock) {
 		this.openTriviaClient = openTriviaClient;

@@ -15,7 +15,7 @@ Er worden constructors toegevoegd die alleen testing ondersteunen. Daardoor lekt
 - Geen constructor bestaat alleen voor testgemak.
 - Tests blijven leesbaar en expliciet over hun collaborators.
 - Productieclasses houden de kleinste benodigde constructor-API.
-- FILE is als laatste stap verplaatst naar work/feedback/done
+- work/feedback/onnodige-test-constructors.md is als laatste stap verplaatst naar work/feedback/done
 
 ## TDD Aanpak
 1. Red: schrijf of behoud tests die het gedrag afdekken waarvoor de test-only constructor werd gebruikt.

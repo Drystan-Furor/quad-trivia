@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,12 +14,6 @@ public class InMemoryQuizSessionStore {
 	private final Map<String, QuizSession> sessions = new ConcurrentHashMap<>();
 	private final Clock clock;
 
-	//no-args constructor for Spring (prod)injection
-	public InMemoryQuizSessionStore() {
-		this(Clock.systemUTC());
-	}
-
-	//constructor for testing
 	public InMemoryQuizSessionStore(Clock clock) {
 		this.clock = clock;
 	}
