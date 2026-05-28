@@ -19,8 +19,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validator;
 import quad.solutions.trivia.client.OpenTriviaClient;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
@@ -41,17 +39,15 @@ public class QuizService {
 	private final OpenTriviaClient openTriviaClient;
 	private final InMemoryQuizSessionStore quizSessionStore;
 	private final Clock clock;
-	private final Validator validator;
 	private final QuizMapper quizMapper;
 	// QuizService is a singleton; CAS keeps the local rate guard atomic without locking the upstream fetch.
 	private final AtomicReference<Instant> lastQuizCreatedAt = new AtomicReference<>();
 
 	public QuizService(OpenTriviaClient openTriviaClient, InMemoryQuizSessionStore quizSessionStore, Clock clock,
-			Validator validator, QuizMapper quizMapper) {
+			QuizMapper quizMapper) {
 		this.openTriviaClient = openTriviaClient;
 		this.quizSessionStore = quizSessionStore;
 		this.clock = clock;
-		this.validator = validator;
 		this.quizMapper = quizMapper;
 	}
 
@@ -130,29 +126,23 @@ public class QuizService {
 			throw new ResponseStatusException(BAD_REQUEST, "Quiz session is required");
 		}
 
-		Set<ConstraintViolation<CheckAnswersRequest>> violations = validator.validate(request);
-		if (violations.isEmpty()) {
-			return;
-		}
-
-		if (hasViolation(violations, "quizId")) {
+		if (isBlank(request.quizId())) {
 			throw new ResponseStatusException(BAD_REQUEST, "Quiz session is required");
 		}
-		if (hasViolation(violations, "answers")) {
+		if (request.answers() == null || request.answers().isEmpty()) {
 			throw new ResponseStatusException(BAD_REQUEST, "A complete answer set is required");
 		}
-		if (violations.stream().map(violation -> violation.getPropertyPath().toString())
-				.anyMatch(path -> path.startsWith("answers["))) {
+		if (request.answers().stream().anyMatch(this::isIncompleteAnswer)) {
 			throw new ResponseStatusException(BAD_REQUEST, "Each answer must include a question id and selected answer");
 		}
-
-		throw new ResponseStatusException(BAD_REQUEST, "Invalid request payload");
 	}
 
-	private boolean hasViolation(Set<ConstraintViolation<CheckAnswersRequest>> violations, String propertyPath) {
-		return violations.stream()
-				.map(violation -> violation.getPropertyPath().toString())
-				.anyMatch(propertyPath::equals);
+	private boolean isIncompleteAnswer(AnswerSubmissionRequest answer) {
+		return answer == null || isBlank(answer.questionId()) || isBlank(answer.answer());
+	}
+
+	private boolean isBlank(String value) {
+		return value == null || value.isBlank();
 	}
 
 	private void validateSubmittedAnswers(QuizSession quizSession, List<AnswerSubmissionRequest> answers) {

@@ -31,14 +31,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import quad.solutions.trivia.client.OpenTriviaClient;
 import quad.solutions.trivia.dto.AnswerResultResponse;
 import quad.solutions.trivia.dto.AnswerSubmissionRequest;
@@ -62,21 +58,15 @@ class QuizServiceTest {
 	@Mock
 	private Clock clock;
 
-	@Spy
-	private Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-
-	@Spy
-	private InMemoryQuizSessionStore quizSessionStore = new InMemoryQuizSessionStore(
-			Clock.fixed(DEFAULT_INSTANT, ZoneOffset.UTC));
-
-	@Spy
-	private QuizMapper quizMapper = new QuizMapper();
-
-	@InjectMocks
+	private InMemoryQuizSessionStore quizSessionStore;
+	private QuizMapper quizMapper;
 	private QuizService quizService;
 
 	@BeforeEach
 	void setUpClock() {
+		quizSessionStore = new InMemoryQuizSessionStore(Clock.fixed(DEFAULT_INSTANT, ZoneOffset.UTC));
+		quizMapper = new QuizMapper();
+		quizService = new QuizService(openTriviaClient, quizSessionStore, clock, quizMapper);
 		lenient().when(clock.instant()).thenReturn(DEFAULT_INSTANT);
 	}
 
@@ -157,7 +147,7 @@ class QuizServiceTest {
 	void createQuizAssignsExpectedSessionTtl() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new TriviaQuestion(
@@ -288,7 +278,7 @@ class QuizServiceTest {
 	void checkAnswersRejectsExpiredQuizSessionAsUnavailable() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:31:00Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 		store.save(new QuizSession(
 				"quiz-expired",
 				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
@@ -369,7 +359,7 @@ class QuizServiceTest {
 	void createQuizRejectsRequestsThatExceedLocalRateGuard() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
 				new TriviaQuestion(
@@ -393,7 +383,7 @@ class QuizServiceTest {
 	void createQuizAllowsOnlyOneParallelRequestWithinRateGuardWindow() throws Exception {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:15:30Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
-		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 		int attempts = 16;
 
 		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
