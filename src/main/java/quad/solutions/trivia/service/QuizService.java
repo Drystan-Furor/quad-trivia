@@ -1,7 +1,6 @@
 package quad.solutions.trivia.service;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.GONE;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
@@ -82,12 +81,8 @@ public class QuizService {
 	public CheckAnswersResponse checkAnswers(CheckAnswersRequest request) {
 		validateAnswerRequest(request);
 
-		if (!quizSessionStore.hasSession(request.quizId())) {
-			throw new ResponseStatusException(NOT_FOUND, "Quiz session is not available");
-		}
-
 		QuizSession quizSession = quizSessionStore.findById(request.quizId())
-				.orElseThrow(() -> new ResponseStatusException(GONE, "Quiz session has expired"));
+				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Quiz session is not available"));
 
 		if (quizSession.used()) {
 			throw new ResponseStatusException(CONFLICT, "Quiz answers have already been submitted");

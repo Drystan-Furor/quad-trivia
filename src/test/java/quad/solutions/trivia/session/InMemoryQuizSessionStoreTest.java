@@ -41,7 +41,6 @@ class InMemoryQuizSessionStoreTest {
 		store.save(expiredSession);
 
 		assertThat(store.findById("quiz-2")).isEmpty();
-		assertThat(store.hasSession("quiz-2")).isFalse();
 	}
 
 	@Test

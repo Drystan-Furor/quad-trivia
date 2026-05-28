@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 
 import java.lang.reflect.RecordComponent;
@@ -48,6 +49,7 @@ import quad.solutions.trivia.mapper.QuizMapper;
 import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
+import quad.solutions.trivia.session.StoredQuestion;
 
 @ExtendWith(MockitoExtension.class)
 class QuizServiceTest {
@@ -267,6 +269,40 @@ class QuizServiceTest {
 		assertThatThrownBy(() -> quizService.checkAnswers(request))
 				.isInstanceOf(ResponseStatusException.class)
 				.hasMessageContaining("already been submitted");
+	}
+
+	@Test
+	void checkAnswersRejectsMissingQuizSessionAsUnavailable() {
+		CheckAnswersRequest request = new CheckAnswersRequest(
+				"quiz-does-not-exist",
+				List.of(new AnswerSubmissionRequest("question-1", "Water")));
+
+		assertThatThrownBy(() -> quizService.checkAnswers(request))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(NOT_FOUND);
+					assertThat(exception.getReason()).isEqualTo("Quiz session is not available");
+				});
+	}
+
+	@Test
+	void checkAnswersRejectsExpiredQuizSessionAsUnavailable() {
+		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:31:00Z"), ZoneOffset.UTC);
+		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
+		QuizService service = new QuizService(openTriviaClient, store, fixedClock, validator, quizMapper);
+		store.save(new QuizSession(
+				"quiz-expired",
+				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				Instant.parse("2026-05-14T10:15:30Z"),
+				Instant.parse("2026-05-14T10:30:30Z"),
+				false));
+
+		assertThatThrownBy(() -> service.checkAnswers(new CheckAnswersRequest(
+				"quiz-expired",
+				List.of(new AnswerSubmissionRequest("question-1", "Water")))))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(NOT_FOUND);
+					assertThat(exception.getReason()).isEqualTo("Quiz session is not available");
+				});
 	}
 
 	@ParameterizedTest

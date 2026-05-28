@@ -4,6 +4,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -148,6 +149,22 @@ class QuestionControllerTest {
 						"""))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("Invalid request payload"));
+	}
+
+	@Test
+	void postCheckAnswersMapsUnavailableQuizSessionToNotFound() throws Exception {
+		CheckAnswersRequest request = new CheckAnswersRequest(
+				"quiz-missing",
+				List.of(new AnswerSubmissionRequest("question-1", "Water")));
+		when(quizService.checkAnswers(request))
+				.thenThrow(new ResponseStatusException(NOT_FOUND, "Quiz session is not available"));
+
+		mockMvc.perform(post("/checkanswers")
+				.with(csrf())
+				.contentType(APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.message").value("Quiz session is not available"));
 	}
 
 	@Test

@@ -37,8 +37,4 @@ public class InMemoryQuizSessionStore {
 		return Optional.of(session);
 	}
 
-	public boolean hasSession(String id) {
-		return sessions.containsKey(id);
-	}
-
 }
