@@ -238,6 +238,27 @@ class OpenTriviaClientTest {
 	}
 
 	@Test
+	void responseCodeOneFailsWhenNoResultsAreAvailable() {
+		server.expect(requestTo("https://opentdb.com/api_token.php?command=request"))
+				.andRespond(json("""
+						{"response_code":0,"response_message":"Token Generated Successfully!","token":"session-token"}
+						"""));
+		server.expect(requestTo(
+				"https://opentdb.com/api.php?amount=1&encode=url3986&token=session-token"))
+				.andRespond(json("""
+						{"response_code":1,"results":[]}
+						"""));
+
+		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
+
+		assertThatThrownBy(() -> client.fetchQuestions(1, null, TriviaDifficulty.ANY))
+				.isInstanceOf(OpenTriviaClientException.class)
+				.hasMessageContaining("response_code=1");
+
+		server.verify();
+	}
+
+	@Test
 	void responseCodeFiveFailsWithoutBlindRetrying() {
 		server.expect(requestTo("https://opentdb.com/api_token.php?command=request"))
 				.andRespond(json("""
