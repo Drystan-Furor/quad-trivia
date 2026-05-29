@@ -42,6 +42,7 @@ import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.mapper.QuizMapper;
 import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
@@ -73,7 +74,7 @@ class QuizServiceTest {
 
 	@Test
 	void createQuizDoesNotExposeCorrectAnswerFieldsInResponse() {
-		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(2, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"medium",
@@ -82,7 +83,7 @@ class QuizServiceTest {
 						"Water",
 						List.of("Fire", "Earth", "Air"))));
 
-		QuizResponse response = quizService.createQuiz(2, null);
+		QuizResponse response = quizService.createQuiz(2, null, TriviaDifficulty.ANY);
 
 		assertRecordFieldsDoNotContain(QuizResponse.class, "correctAnswer", "token");
 		assertRecordFieldsDoNotContain(response.questions().getFirst().getClass(), "correctAnswer", "token");
@@ -94,7 +95,7 @@ class QuizServiceTest {
 
 	@Test
 	void createQuizStoresCorrectAnswersServerSide() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"boolean",
 						"easy",
@@ -103,7 +104,7 @@ class QuizServiceTest {
 						"True",
 						List.of("False"))));
 
-		QuizResponse response = quizService.createQuiz(1, null);
+		QuizResponse response = quizService.createQuiz(1, null, TriviaDifficulty.ANY);
 		QuizSession storedQuiz = quizSessionStore.findById(response.quizId()).orElseThrow();
 
 		assertThat(storedQuiz.issuedAt()).isNotNull();
@@ -117,7 +118,7 @@ class QuizServiceTest {
 
 	@Test
 	void createQuizPassesSelectedCategoryToOpenTriviaClient() {
-		when(openTriviaClient.fetchQuestions(1, 18)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, 18, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"easy",
@@ -126,17 +127,45 @@ class QuizServiceTest {
 						"Central Processing Unit",
 						List.of("Computer Personal Unit"))));
 
-		QuizResponse response = quizService.createQuiz(1, 18);
+		QuizResponse response = quizService.createQuiz(1, 18, TriviaDifficulty.ANY);
 
 		assertThat(response.questions()).singleElement().satisfies(question ->
 				assertThat(question.category()).isEqualTo("Science: Computers"));
-		verify(openTriviaClient).fetchQuestions(1, 18);
+		verify(openTriviaClient).fetchQuestions(1, 18, TriviaDifficulty.ANY);
+	}
+
+	@Test
+	void createQuizPassesSelectedDifficultyToOpenTriviaClient() {
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.MEDIUM)).thenReturn(List.of(
+				new TriviaQuestion(
+						"multiple",
+						"medium",
+						"Science: Computers",
+						"What does CPU stand for?",
+						"Central Processing Unit",
+						List.of("Computer Personal Unit"))));
+
+		QuizResponse response = quizService.createQuiz(1, null, TriviaDifficulty.MEDIUM);
+
+		assertThat(response.questions()).singleElement().satisfies(question ->
+				assertThat(question.difficulty()).isEqualTo("medium"));
+		verify(openTriviaClient).fetchQuestions(1, null, TriviaDifficulty.MEDIUM);
 	}
 
 	@ParameterizedTest
 	@MethodSource("invalidQuizRequests")
 	void createQuizRejectsInvalidQuizRequestParameters(int amount, Integer category) {
-		assertThatThrownBy(() -> quizService.createQuiz(amount, category))
+		assertThatThrownBy(() -> quizService.createQuiz(amount, category, TriviaDifficulty.ANY))
+				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
+					assertThat(exception.getReason()).isEqualTo("Invalid request parameters");
+				});
+		verifyNoInteractions(openTriviaClient);
+	}
+
+	@Test
+	void createQuizRejectsMissingDifficulty() {
+		assertThatThrownBy(() -> quizService.createQuiz(1, null, null))
 				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
 					assertThat(exception.getStatusCode()).isEqualTo(BAD_REQUEST);
 					assertThat(exception.getReason()).isEqualTo("Invalid request parameters");
@@ -150,7 +179,7 @@ class QuizServiceTest {
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
 		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"boolean",
 						"easy",
@@ -159,7 +188,7 @@ class QuizServiceTest {
 						"True",
 						List.of("False"))));
 
-		QuizResponse response = service.createQuiz(1, null);
+		QuizResponse response = service.createQuiz(1, null, TriviaDifficulty.ANY);
 		QuizSession storedQuiz = store.findById(response.quizId()).orElseThrow();
 
 		assertThat(storedQuiz.issuedAt()).isEqualTo(Instant.parse("2026-05-14T10:15:30Z"));
@@ -168,7 +197,7 @@ class QuizServiceTest {
 
 	@Test
 	void createQuizDecodesAndSanitizesQuestionTextAndOptions() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"hard",
@@ -177,7 +206,7 @@ class QuizServiceTest {
 						"<b>Water</b>",
 						List.of("<i>Fire</i>", "Earth & Wind", "\"Air\""))));
 
-		QuizResponse response = quizService.createQuiz(1, null);
+		QuizResponse response = quizService.createQuiz(1, null, TriviaDifficulty.ANY);
 
 		assertThat(response.questions()).singleElement().satisfies(question -> {
 			assertThat(question.question()).isEqualTo("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; already decoded");
@@ -191,7 +220,7 @@ class QuizServiceTest {
 
 	@Test
 	void checkAnswersEvaluatesSubmittedAnswersAgainstServerSideSession() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"easy",
@@ -199,7 +228,7 @@ class QuizServiceTest {
 						"What is H2O?",
 						"Water",
 						List.of("Fire", "Earth", "Air"))));
-		QuizResponse quiz = quizService.createQuiz(1, null);
+		QuizResponse quiz = quizService.createQuiz(1, null, TriviaDifficulty.ANY);
 
 		CheckAnswersResponse response = quizService.checkAnswers(new CheckAnswersRequest(
 				quiz.quizId(),
@@ -212,12 +241,12 @@ class QuizServiceTest {
 			assertThat(result.correct()).isTrue();
 		});
 		assertThat(quizSessionStore.findById(quiz.quizId())).get().extracting(QuizSession::used).isEqualTo(true);
-		verify(openTriviaClient).fetchQuestions(1, null);
+		verify(openTriviaClient).fetchQuestions(1, null, TriviaDifficulty.ANY);
 	}
 
 	@Test
 	void checkAnswersScoresCorrectlyWhenCorrectAnswerWasNotPresentedFirst() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"easy",
@@ -225,7 +254,7 @@ class QuizServiceTest {
 						"What is H2O?",
 						"Water",
 						List.of("Fire", "Earth", "Air"))));
-		QuizResponse quiz = quizService.createQuiz(1, null);
+		QuizResponse quiz = quizService.createQuiz(1, null, TriviaDifficulty.ANY);
 
 		assertThat(quiz.questions().getFirst().options()).containsExactly("Fire", "Earth", "Air", "Water");
 
@@ -239,7 +268,7 @@ class QuizServiceTest {
 
 	@Test
 	void checkAnswersReturnsOnlyScoreAndCorrectness() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"easy",
@@ -247,7 +276,7 @@ class QuizServiceTest {
 						"What is H2O?",
 						"Water",
 						List.of("Fire", "Earth", "Air"))));
-		QuizResponse quiz = quizService.createQuiz(1, null);
+		QuizResponse quiz = quizService.createQuiz(1, null, TriviaDifficulty.ANY);
 
 		CheckAnswersResponse response = quizService.checkAnswers(new CheckAnswersRequest(
 				quiz.quizId(),
@@ -264,7 +293,7 @@ class QuizServiceTest {
 
 	@Test
 	void checkAnswersRejectsRepeatedSubmissions() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"easy",
@@ -272,7 +301,7 @@ class QuizServiceTest {
 						"What is H2O?",
 						"Water",
 						List.of("Fire", "Earth", "Air"))));
-		QuizResponse quiz = quizService.createQuiz(1, null);
+		QuizResponse quiz = quizService.createQuiz(1, null, TriviaDifficulty.ANY);
 		CheckAnswersRequest request = new CheckAnswersRequest(
 				quiz.quizId(),
 				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "Water")));
@@ -331,7 +360,7 @@ class QuizServiceTest {
 
 	@Test
 	void checkAnswersRejectsIncompleteAnswerPayload() {
-		when(openTriviaClient.fetchQuestions(2, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(2, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"easy",
@@ -346,7 +375,7 @@ class QuizServiceTest {
 						"What is CO2?",
 						"Carbon dioxide",
 						List.of("Oxygen", "Hydrogen", "Nitrogen"))));
-		QuizResponse quiz = quizService.createQuiz(2, null);
+		QuizResponse quiz = quizService.createQuiz(2, null, TriviaDifficulty.ANY);
 
 		assertThatThrownBy(() -> quizService.checkAnswers(new CheckAnswersRequest(
 				quiz.quizId(),
@@ -359,7 +388,7 @@ class QuizServiceTest {
 
 	@Test
 	void checkAnswersRejectsAnswersForUnexpectedQuestionIds() {
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
 						"easy",
@@ -367,7 +396,7 @@ class QuizServiceTest {
 						"What is H2O?",
 						"Water",
 						List.of("Fire", "Earth", "Air"))));
-		QuizResponse quiz = quizService.createQuiz(1, null);
+		QuizResponse quiz = quizService.createQuiz(1, null, TriviaDifficulty.ANY);
 
 		assertThatThrownBy(() -> quizService.checkAnswers(new CheckAnswersRequest(
 				quiz.quizId(),
@@ -384,7 +413,7 @@ class QuizServiceTest {
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
 		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"boolean",
 						"easy",
@@ -393,9 +422,9 @@ class QuizServiceTest {
 						"True",
 						List.of("False"))));
 
-		service.createQuiz(1, null);
+		service.createQuiz(1, null, TriviaDifficulty.ANY);
 
-		assertThatThrownBy(() -> service.createQuiz(1, null))
+		assertThatThrownBy(() -> service.createQuiz(1, null, TriviaDifficulty.ANY))
 				.isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
 					assertThat(exception.getStatusCode()).isEqualTo(TOO_MANY_REQUESTS);
 					assertThat(exception.getReason()).contains("Please wait");
@@ -409,7 +438,7 @@ class QuizServiceTest {
 		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 		int attempts = 16;
 
-		when(openTriviaClient.fetchQuestions(1, null)).thenReturn(List.of(
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"boolean",
 						"easy",
@@ -427,7 +456,7 @@ class QuizServiceTest {
 						ready.countDown();
 						assertThat(start.await(1, TimeUnit.SECONDS)).isTrue();
 						try {
-							service.createQuiz(1, null);
+							service.createQuiz(1, null, TriviaDifficulty.ANY);
 							return true;
 						}
 						catch (ResponseStatusException exception) {
@@ -444,7 +473,7 @@ class QuizServiceTest {
 					.extracting(Future::get)
 					.containsOnlyOnce(true)
 					.contains(false);
-			verify(openTriviaClient, times(1)).fetchQuestions(1, null);
+			verify(openTriviaClient, times(1)).fetchQuestions(1, null, TriviaDifficulty.ANY);
 		}
 		finally {
 			executor.shutdownNow();

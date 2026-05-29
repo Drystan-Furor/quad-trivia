@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import lombok.RequiredArgsConstructor;
+import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.model.TriviaQuestion;
 
 @Component
@@ -33,21 +34,22 @@ public class OpenTriviaClient {
 	private String sessionToken;
 	private Instant lastTokenActivityAt;
 
-	public List<TriviaQuestion> fetchQuestions(int amount, Integer category) {
+	public List<TriviaQuestion> fetchQuestions(int amount, Integer category, TriviaDifficulty difficulty) {
 		validateAmount(amount);
 		validateCategory(category);
+		TriviaDifficulty selectedDifficulty = validateDifficulty(difficulty);
 
 		String token = getActiveToken();
-		TriviaApiResponse response = fetchQuestionsOnce(amount, category, token);
+		TriviaApiResponse response = fetchQuestionsOnce(amount, category, selectedDifficulty, token);
 
 		if (response.responseCode() == INVALID_TOKEN) {
 			invalidateToken();
 			token = getActiveToken();
-			response = fetchQuestionsOnce(amount, category, token);
+			response = fetchQuestionsOnce(amount, category, selectedDifficulty, token);
 		}
 		else if (response.responseCode() == TOKEN_EMPTY) {
 			token = resetOrReplaceToken(token);
-			response = fetchQuestionsOnce(amount, category, token);
+			response = fetchQuestionsOnce(amount, category, selectedDifficulty, token);
 		}
 
 		if (response.responseCode() == RATE_LIMITED) {
@@ -73,6 +75,13 @@ public class OpenTriviaClient {
 		if (category != null && category < 1) {
 			throw new IllegalArgumentException("Category must be a positive identifier");
 		}
+	}
+
+	private TriviaDifficulty validateDifficulty(TriviaDifficulty difficulty) {
+		if (difficulty == null) {
+			throw new IllegalArgumentException("Difficulty is required");
+		}
+		return difficulty;
 	}
 
 	private String getActiveToken() {
@@ -133,8 +142,8 @@ public class OpenTriviaClient {
 		return response;
 	}
 
-	private TriviaApiResponse fetchQuestionsOnce(int amount, Integer category, String token) {
-		String uri = buildQuestionsUri(amount, category, token);
+	private TriviaApiResponse fetchQuestionsOnce(int amount, Integer category, TriviaDifficulty difficulty, String token) {
+		String uri = buildQuestionsUri(amount, category, difficulty, token);
 		TriviaApiResponse response = restClient.get()
 				.uri(uri)
 				.retrieve()
@@ -148,10 +157,11 @@ public class OpenTriviaClient {
 		return response;
 	}
 
-	private String buildQuestionsUri(int amount, Integer category, String token) {
+	private String buildQuestionsUri(int amount, Integer category, TriviaDifficulty difficulty, String token) {
 		UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/api.php")
 				.queryParam("amount", amount)
 				.queryParamIfPresent("category", java.util.Optional.ofNullable(category))
+				.queryParamIfPresent("difficulty", difficulty.openTriviaValue())
 				.queryParam("encode", "url3986")
 				.queryParam("token", token);
 		return builder.build(true).toUriString();

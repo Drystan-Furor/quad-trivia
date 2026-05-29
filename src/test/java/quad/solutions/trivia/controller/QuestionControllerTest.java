@@ -34,6 +34,7 @@ import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuestionResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.service.QuizService;
 
 @SpringBootTest
@@ -52,7 +53,7 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsReturnsSafeClientPayload() throws Exception {
-		when(quizService.createQuiz(5, null)).thenReturn(new QuizResponse(
+		when(quizService.createQuiz(5, null, TriviaDifficulty.ANY)).thenReturn(new QuizResponse(
 				"quiz-123",
 				List.of(new QuestionResponse(
 						"question-1",
@@ -76,7 +77,7 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsPassesSelectedCategoryToService() throws Exception {
-		when(quizService.createQuiz(5, 18)).thenReturn(new QuizResponse(
+		when(quizService.createQuiz(5, 18, TriviaDifficulty.ANY)).thenReturn(new QuizResponse(
 				"quiz-123",
 				List.of(new QuestionResponse(
 						"question-1",
@@ -93,7 +94,29 @@ class QuestionControllerTest {
 				.andExpect(jsonPath("$.quizId").value("quiz-123"))
 				.andExpect(jsonPath("$.questions[0].category").value("Science: Computers"));
 
-		verify(quizService).createQuiz(5, 18);
+		verify(quizService).createQuiz(5, 18, TriviaDifficulty.ANY);
+	}
+
+	@Test
+	void getQuestionsPassesSelectedDifficultyToService() throws Exception {
+		when(quizService.createQuiz(5, null, TriviaDifficulty.EASY)).thenReturn(new QuizResponse(
+				"quiz-123",
+				List.of(new QuestionResponse(
+						"question-1",
+						"multiple",
+						"easy",
+						"Science: Computers",
+						"What does CPU stand for?",
+						List.of("Central Processing Unit", "Computer Personal Unit")))));
+
+		mockMvc.perform(get("/questions")
+				.param("amount", "5")
+				.param("difficulty", "easy"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.quizId").value("quiz-123"))
+				.andExpect(jsonPath("$.questions[0].difficulty").value("easy"));
+
+		verify(quizService).createQuiz(5, null, TriviaDifficulty.EASY);
 	}
 
 	@Test
@@ -122,7 +145,7 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsRejectsAmountsAboveTheSupportedLimit() throws Exception {
-		when(quizService.createQuiz(51, null))
+		when(quizService.createQuiz(51, null, TriviaDifficulty.ANY))
 				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
 
 		mockMvc.perform(get("/questions").param("amount", "51"))
@@ -132,10 +155,17 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsRejectsNonPositiveCategories() throws Exception {
-		when(quizService.createQuiz(5, 0))
+		when(quizService.createQuiz(5, 0, TriviaDifficulty.ANY))
 				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
 
 		mockMvc.perform(get("/questions").param("category", "0"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
+	}
+
+	@Test
+	void getQuestionsRejectsUnknownDifficulties() throws Exception {
+		mockMvc.perform(get("/questions").param("difficulty", "expert"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
 	}
@@ -170,7 +200,7 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsMapsUpstreamRateLimitsToControlledResponse() throws Exception {
-		when(quizService.createQuiz(5, null)).thenThrow(new OpenTriviaRateLimitException("upstream detail"));
+		when(quizService.createQuiz(5, null, TriviaDifficulty.ANY)).thenThrow(new OpenTriviaRateLimitException("upstream detail"));
 
 		mockMvc.perform(get("/questions"))
 				.andExpect(status().is(TOO_MANY_REQUESTS.value()))
@@ -179,7 +209,7 @@ class QuestionControllerTest {
 
 	@Test
 	void getQuestionsHidesInternalUpstreamFailures() throws Exception {
-		when(quizService.createQuiz(5, null)).thenThrow(new OpenTriviaClientException("internal upstream detail"));
+		when(quizService.createQuiz(5, null, TriviaDifficulty.ANY)).thenThrow(new OpenTriviaClientException("internal upstream detail"));
 
 		mockMvc.perform(get("/questions"))
 				.andExpect(status().is(BAD_GATEWAY.value()))

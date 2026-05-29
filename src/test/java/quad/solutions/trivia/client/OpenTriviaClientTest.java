@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.model.TriviaQuestion;
 
 class OpenTriviaClientTest {
@@ -98,10 +99,10 @@ class OpenTriviaClientTest {
 
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		List<TriviaQuestion> firstBatch = client.fetchQuestions(2, null);
-		List<TriviaQuestion> secondBatch = client.fetchQuestions(1, 12);
+		List<TriviaQuestion> firstBatch = client.fetchQuestions(2, null, TriviaDifficulty.ANY);
+		List<TriviaQuestion> secondBatch = client.fetchQuestions(1, 12, TriviaDifficulty.ANY);
 		clock.advance(Duration.ofHours(6).plusSeconds(1));
-		List<TriviaQuestion> thirdBatch = client.fetchQuestions(1, null);
+		List<TriviaQuestion> thirdBatch = client.fetchQuestions(1, null, TriviaDifficulty.ANY);
 
 		assertThat(firstBatch).singleElement().satisfies(question -> {
 			assertThat(question.question()).isEqualTo("What is H2O?");
@@ -155,9 +156,42 @@ class OpenTriviaClientTest {
 
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		List<TriviaQuestion> questions = client.fetchQuestions(1, null);
+		List<TriviaQuestion> questions = client.fetchQuestions(1, null, TriviaDifficulty.ANY);
 
 		assertThat(questions).extracting(TriviaQuestion::correctAnswer).containsExactly("Mars");
+		server.verify();
+	}
+
+	@Test
+	void fetchQuestionsIncludesSelectedDifficultyWhenProvided() {
+		server.expect(requestTo("https://opentdb.com/api_token.php?command=request"))
+				.andRespond(json("""
+						{"response_code":0,"response_message":"Token Generated Successfully!","token":"session-token"}
+						"""));
+		server.expect(requestTo(
+				"https://opentdb.com/api.php?amount=1&difficulty=hard&encode=url3986&token=session-token"))
+				.andRespond(json("""
+						{
+						  "response_code":0,
+						  "results":[
+						    {
+						      "type":"multiple",
+						      "difficulty":"hard",
+						      "category":"History",
+						      "question":"Who%20was%20the%20first%20president%20of%20the%20USA%3F",
+						      "correct_answer":"George%20Washington",
+						      "incorrect_answers":["John%20Adams","Thomas%20Jefferson","James%20Madison"]
+						    }
+						  ]
+						}
+						"""));
+
+		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
+
+		List<TriviaQuestion> questions = client.fetchQuestions(1, null, TriviaDifficulty.HARD);
+
+		assertThat(questions).singleElement().satisfies(question ->
+				assertThat(question.difficulty()).isEqualTo("hard"));
 		server.verify();
 	}
 
@@ -196,7 +230,7 @@ class OpenTriviaClientTest {
 
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		List<TriviaQuestion> questions = client.fetchQuestions(1, null);
+		List<TriviaQuestion> questions = client.fetchQuestions(1, null, TriviaDifficulty.ANY);
 
 		assertThat(questions).extracting(TriviaQuestion::question)
 				.containsExactly("Does HTTP stand for HyperText Transfer Protocol?");
@@ -217,7 +251,7 @@ class OpenTriviaClientTest {
 
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		assertThatThrownBy(() -> client.fetchQuestions(1, null))
+		assertThatThrownBy(() -> client.fetchQuestions(1, null, TriviaDifficulty.ANY))
 				.isInstanceOf(OpenTriviaRateLimitException.class)
 				.hasMessageContaining("rate limit");
 
@@ -228,7 +262,7 @@ class OpenTriviaClientTest {
 	void rejectsQuestionAmountsAboveTheUpstreamLimit() {
 		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
 
-		assertThatThrownBy(() -> client.fetchQuestions(51, null))
+		assertThatThrownBy(() -> client.fetchQuestions(51, null, TriviaDifficulty.ANY))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("50");
 	}

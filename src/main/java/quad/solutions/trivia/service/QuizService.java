@@ -24,6 +24,7 @@ import quad.solutions.trivia.dto.AnswerSubmissionRequest;
 import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.mapper.QuizMapper;
 import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
@@ -51,10 +52,10 @@ public class QuizService {
 		this.quizMapper = quizMapper;
 	}
 
-	public QuizResponse createQuiz(int amount, Integer category) {
-		validateQuizRequest(amount, category);
+	public QuizResponse createQuiz(int amount, Integer category, TriviaDifficulty difficulty) {
+		validateQuizRequest(amount, category, difficulty);
 		enforceQuizCreationGuard();
-		List<TriviaQuestion> upstreamQuestions = openTriviaClient.fetchQuestions(amount, category);
+		List<TriviaQuestion> upstreamQuestions = openTriviaClient.fetchQuestions(amount, category, difficulty);
 		String quizId = UUID.randomUUID().toString();
 		List<QuizMapper.IssuedQuestion> issuedQuestions = upstreamQuestions.stream()
 				.map(upstreamQuestion -> quizMapper.toIssuedQuestion(upstreamQuestion, UUID.randomUUID().toString()))
@@ -98,11 +99,14 @@ public class QuizService {
 		return response;
 	}
 
-	private void validateQuizRequest(int amount, Integer category) {
+	private void validateQuizRequest(int amount, Integer category, TriviaDifficulty difficulty) {
 		if (amount < 1 || amount > 50) {
 			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters");
 		}
 		if (category != null && category < 1) {
+			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters");
+		}
+		if (difficulty == null) {
 			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters");
 		}
 	}

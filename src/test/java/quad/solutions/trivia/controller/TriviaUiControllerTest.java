@@ -33,6 +33,7 @@ import quad.solutions.trivia.dto.CheckAnswersRequest;
 import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuestionResponse;
 import quad.solutions.trivia.dto.QuizResponse;
+import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.service.QuizService;
 
 @SpringBootTest
@@ -48,7 +49,7 @@ class TriviaUiControllerTest {
 
 	@Test
 	void postQuestionsRendersSafeTriviaPage() throws Exception {
-		when(quizService.createQuiz(5, null)).thenReturn(new QuizResponse(
+		when(quizService.createQuiz(5, null, TriviaDifficulty.ANY)).thenReturn(new QuizResponse(
 				"quiz-123",
 				List.of(new QuestionResponse(
 						"question-1",
@@ -79,7 +80,7 @@ class TriviaUiControllerTest {
 
 	@Test
 	void postQuestionsPassesSelectedCategoryToService() throws Exception {
-		when(quizService.createQuiz(5, 18)).thenReturn(new QuizResponse(
+		when(quizService.createQuiz(5, 18, TriviaDifficulty.ANY)).thenReturn(new QuizResponse(
 				"quiz-123",
 				List.of(new QuestionResponse(
 						"question-1",
@@ -98,7 +99,31 @@ class TriviaUiControllerTest {
 				.andExpect(view().name("quiz"))
 				.andExpect(content().string(containsString("Science: Computers")));
 
-		verify(quizService).createQuiz(5, 18);
+		verify(quizService).createQuiz(5, 18, TriviaDifficulty.ANY);
+	}
+
+	@Test
+	void postQuestionsPassesSelectedDifficultyToService() throws Exception {
+		when(quizService.createQuiz(5, null, TriviaDifficulty.HARD)).thenReturn(new QuizResponse(
+				"quiz-123",
+				List.of(new QuestionResponse(
+						"question-1",
+						"multiple",
+						"hard",
+						"Science: Computers",
+						"What does CPU stand for?",
+						List.of("Central Processing Unit", "Computer Personal Unit")))));
+
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5")
+				.param("difficulty", "hard"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("quiz"))
+				.andExpect(content().string(containsString("hard")));
+
+		verify(quizService).createQuiz(5, null, TriviaDifficulty.HARD);
 	}
 
 	@Test
@@ -128,7 +153,7 @@ class TriviaUiControllerTest {
 
 	@Test
 	void postQuestionsRendersFriendlyErrorWhenQuizCreationIsRateLimited() throws Exception {
-		when(quizService.createQuiz(5, null)).thenThrow(new OpenTriviaRateLimitException("internal detail"));
+		when(quizService.createQuiz(5, null, TriviaDifficulty.ANY)).thenThrow(new OpenTriviaRateLimitException("internal detail"));
 
 		mockMvc.perform(post("/questions")
 				.with(csrf())
@@ -142,7 +167,7 @@ class TriviaUiControllerTest {
 
 	@Test
 	void postQuestionsRejectsInvalidAmountsWithFriendlyMessage() throws Exception {
-		when(quizService.createQuiz(51, null))
+		when(quizService.createQuiz(51, null, TriviaDifficulty.ANY))
 				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
 
 		mockMvc.perform(post("/questions")
@@ -156,7 +181,7 @@ class TriviaUiControllerTest {
 
 	@Test
 	void postQuestionsRejectsNonPositiveCategoriesWithFriendlyMessage() throws Exception {
-		when(quizService.createQuiz(5, 0))
+		when(quizService.createQuiz(5, 0, TriviaDifficulty.ANY))
 				.thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid request parameters"));
 
 		mockMvc.perform(post("/questions")
@@ -164,6 +189,18 @@ class TriviaUiControllerTest {
 				.contentType(APPLICATION_FORM_URLENCODED)
 				.param("amount", "5")
 				.param("category", "0"))
+				.andExpect(status().isBadRequest())
+				.andExpect(view().name("error"))
+				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
+	}
+
+	@Test
+	void postQuestionsRejectsUnknownDifficultiesWithFriendlyMessage() throws Exception {
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5")
+				.param("difficulty", "expert"))
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("error"))
 				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
