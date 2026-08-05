@@ -150,7 +150,7 @@ class QuestionControllerTest {
 		when(quizService.checkAnswers(request)).thenReturn(new CheckAnswersResponse(
 				1,
 				1,
-				List.of(new AnswerResultResponse("question-1", true))));
+				List.of(new AnswerResultResponse("question-1", "What is H2O?", "Water", "Water", true))));
 
 		mockMvc.perform(post("/checkanswers")
 				.with(csrf())
@@ -161,8 +161,10 @@ class QuestionControllerTest {
 				.andExpect(jsonPath("$.score").value(1))
 				.andExpect(jsonPath("$.totalQuestions").value(1))
 				.andExpect(jsonPath("$.results[0].questionId").value("question-1"))
+				.andExpect(jsonPath("$.results[0].question").value("What is H2O?"))
+				.andExpect(jsonPath("$.results[0].selectedAnswer").value("Water"))
 				.andExpect(jsonPath("$.results[0].correct").value(true))
-				.andExpect(jsonPath("$.results[0].correctAnswer").doesNotExist())
+				.andExpect(jsonPath("$.results[0].correctAnswer").value("Water"))
 				.andExpect(jsonPath("$.token").doesNotExist());
 	}
 

@@ -17,18 +17,28 @@ const upstream = createServer((request, response) => {
 
   if (url.pathname === "/api.php") {
     const category = url.searchParams.get("category") === "18" ? "Science: Computers" : "Science";
+    const amount = Number(url.searchParams.get("amount") ?? "1");
+    const questions = [
+      {
+        type: "multiple",
+        difficulty: "easy",
+        category,
+        question: "What%20is%20H2O%3F",
+        correct_answer: "Water",
+        incorrect_answers: ["Fire", "Earth", "Air"]
+      },
+      {
+        type: "multiple",
+        difficulty: "medium",
+        category,
+        question: "What%20is%202%20%2B%202%3F",
+        correct_answer: "4",
+        incorrect_answers: ["3", "5", "22"]
+      }
+    ];
     response.end(JSON.stringify({
       response_code: 0,
-      results: [
-        {
-          type: "multiple",
-          difficulty: "easy",
-          category,
-          question: "What%20is%20H2O%3F",
-          correct_answer: "Water",
-          incorrect_answers: ["Fire", "Earth", "Air"]
-        }
-      ]
+      results: questions.slice(0, amount)
     }));
     return;
   }

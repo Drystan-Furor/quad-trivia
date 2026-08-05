@@ -13,9 +13,9 @@ class TriviaTypeTest {
 		assertThat(TriviaType.options())
 				.extracting(TriviaType::apiValue, TriviaType::displayName)
 				.containsExactly(
-						tuple("any", "Any Type"),
-						tuple("multiple", "Multiple Choice"),
-						tuple("boolean", "True / False"));
+						tuple("any", "Alle vraagtypen"),
+						tuple("multiple", "Meerkeuze"),
+						tuple("boolean", "Waar / onwaar"));
 	}
 
 	@Test

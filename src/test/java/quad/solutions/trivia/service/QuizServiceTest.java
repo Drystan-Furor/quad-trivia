@@ -259,6 +259,9 @@ class QuizServiceTest {
 		assertThat(response.totalQuestions()).isEqualTo(1);
 		assertThat(response.results()).singleElement().satisfies(result -> {
 			assertThat(result.questionId()).isEqualTo(quiz.questions().getFirst().id());
+			assertThat(result.question()).isEqualTo("What is H2O?");
+			assertThat(result.selectedAnswer()).isEqualTo("Water");
+			assertThat(result.correctAnswer()).isEqualTo("Water");
 			assertThat(result.correct()).isTrue();
 		});
 		assertThat(quizSessionStore.findById(quiz.quizId())).get().extracting(QuizSession::used).isEqualTo(true);
@@ -288,7 +291,7 @@ class QuizServiceTest {
 	}
 
 	@Test
-	void checkAnswersReturnsOnlyScoreAndCorrectness() {
+	void checkAnswersReturnsReviewDataOnlyAfterSubmission() {
 		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
 				new TriviaQuestion(
 						"multiple",
@@ -307,9 +310,14 @@ class QuizServiceTest {
 				.isEqualTo(new CheckAnswersResponse(
 						0,
 						1,
-						List.of(new AnswerResultResponse(quiz.questions().getFirst().id(), false))));
-		assertRecordFieldsDoNotContain(CheckAnswersResponse.class, "correctAnswer", "answer", "token");
-		assertRecordFieldsDoNotContain(AnswerResultResponse.class, "correctAnswer", "answer", "token");
+						List.of(new AnswerResultResponse(
+								quiz.questions().getFirst().id(),
+								"What is H2O?",
+								"Fire",
+								"Water",
+								false))));
+		assertRecordFieldsDoNotContain(CheckAnswersResponse.class, "token");
+		assertRecordFieldsDoNotContain(AnswerResultResponse.class, "token");
 	}
 
 	@Test
@@ -406,7 +414,7 @@ class QuizServiceTest {
 		QuizService service = new QuizService(openTriviaClient, store, fixedClock, quizMapper);
 		store.save(new QuizSession(
 				"quiz-expired",
-				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				List.of(new StoredQuestion("question-1", "What is H2O?", "Water", List.of("Water", "Fire"))),
 				Instant.parse("2026-05-14T10:15:30Z"),
 				Instant.parse("2026-05-14T10:30:30Z"),
 				false));

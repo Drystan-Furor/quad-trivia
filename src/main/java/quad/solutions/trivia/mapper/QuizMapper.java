@@ -32,16 +32,18 @@ public class QuizMapper {
 	public IssuedQuestion toIssuedQuestion(TriviaQuestion upstreamQuestion, String questionId) {
 		List<String> sanitizedOptions = sanitizeOptions(upstreamQuestion);
 		List<String> shuffledOptions = List.copyOf(optionShuffler.apply(sanitizedOptions));
+		String sanitizedQuestion = sanitize(upstreamQuestion.question());
 		return new IssuedQuestion(
 				new QuestionResponse(
 						questionId,
 						sanitize(upstreamQuestion.type()),
 						sanitize(upstreamQuestion.difficulty()),
 						sanitize(upstreamQuestion.category()),
-						sanitize(upstreamQuestion.question()),
+						sanitizedQuestion,
 						shuffledOptions),
 				new StoredQuestion(
 						questionId,
+						sanitizedQuestion,
 						sanitize(upstreamQuestion.correctAnswer()),
 						List.copyOf(shuffledOptions)));
 	}
@@ -50,6 +52,9 @@ public class QuizMapper {
 		List<AnswerResultResponse> results = questions.stream()
 				.map(question -> new AnswerResultResponse(
 						question.id(),
+						question.question(),
+						submittedAnswers.get(question.id()),
+						question.correctAnswer(),
 						question.correctAnswer().equals(submittedAnswers.get(question.id()))))
 				.toList();
 		int score = (int) results.stream().filter(AnswerResultResponse::correct).count();

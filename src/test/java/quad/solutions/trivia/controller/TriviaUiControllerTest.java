@@ -71,6 +71,12 @@ class TriviaUiControllerTest {
 				.andExpect(content().string(containsString("What is H2O?")))
 				.andExpect(content().string(containsString("name=\"answers[0].answer\"")))
 				.andExpect(content().string(containsString("value=\"question-1\"")))
+				.andExpect(content().string(containsString("data-quiz-form")))
+				.andExpect(content().string(containsString("data-quiz-question")))
+				.andExpect(content().string(containsString("role=\"progressbar\"")))
+				.andExpect(content().string(containsString("Vraag 1 van 1")))
+				.andExpect(content().string(containsString("href=\"/css/app.css\"")))
+				.andExpect(content().string(not(containsString("cdn.tailwindcss.com"))))
 				.andExpect(content().string(containsString("<script defer src=\"/js/global.js\"></script>")))
 				.andExpect(content().string(not(containsString("<main class=\"max-w-4xl mx-auto p-4\">\n<script>"))))
 				.andExpect(content().string(not(containsString("document.addEventListener(\"DOMContentLoaded\""))))
@@ -122,7 +128,7 @@ class TriviaUiControllerTest {
 				.param("difficulty", "hard"))
 				.andExpect(status().isOk())
 				.andExpect(view().name("quiz"))
-				.andExpect(content().string(containsString("hard")));
+				.andExpect(content().string(containsString("Moeilijk")));
 
 		verify(quizService).createQuiz(5, null, TriviaDifficulty.HARD);
 	}
@@ -158,7 +164,7 @@ class TriviaUiControllerTest {
 		when(quizService.checkAnswers(eq(request))).thenReturn(new CheckAnswersResponse(
 				1,
 				1,
-				List.of(new AnswerResultResponse("question-1", true))));
+				List.of(new AnswerResultResponse("question-1", "What is H2O?", "Water", "Water", true))));
 
 		mockMvc.perform(post("/checkanswers")
 				.with(csrf())
@@ -170,6 +176,7 @@ class TriviaUiControllerTest {
 				.andExpect(view().name("results"))
 				.andExpect(model().attributeExists("results"))
 				.andExpect(content().string(containsString("Score 1 / 1")))
+				.andExpect(content().string(containsString("data-result-review")))
 				.andExpect(content().string(not(containsString("correctAnswer"))))
 				.andExpect(content().string(not(containsString("token"))))
 				.andExpect(content().string(not(containsString("debug"))));
@@ -185,7 +192,7 @@ class TriviaUiControllerTest {
 				.param("amount", "5"))
 				.andExpect(status().isTooManyRequests())
 				.andExpect(view().name("error"))
-				.andExpect(model().attribute("errorMessage", "Trivia service is temporarily busy. Please try again shortly."))
+				.andExpect(model().attribute("errorMessage", "De triviadienst is even druk. Probeer het zo opnieuw."))
 				.andExpect(content().string(not(containsString("internal detail"))));
 	}
 
@@ -200,7 +207,7 @@ class TriviaUiControllerTest {
 				.param("amount", "51"))
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("error"))
-				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
+				.andExpect(model().attribute("errorMessage", "Controleer je invoer en probeer opnieuw."));
 	}
 
 	@Test
@@ -215,7 +222,7 @@ class TriviaUiControllerTest {
 				.param("category", "0"))
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("error"))
-				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
+				.andExpect(model().attribute("errorMessage", "Controleer je invoer en probeer opnieuw."));
 	}
 
 	@Test
@@ -227,7 +234,7 @@ class TriviaUiControllerTest {
 				.param("difficulty", "expert"))
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("error"))
-				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
+				.andExpect(model().attribute("errorMessage", "Controleer je invoer en probeer opnieuw."));
 	}
 
 	@Test
@@ -239,7 +246,7 @@ class TriviaUiControllerTest {
 				.param("type", "essay"))
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("error"))
-				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
+				.andExpect(model().attribute("errorMessage", "Controleer je invoer en probeer opnieuw."));
 	}
 
 }

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.lang.reflect.RecordComponent;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,7 @@ class QuizMapperTest {
 				"&lt;b&gt;Water&lt;/b&gt;");
 		assertThat(issuedQuestion.storedQuestion()).isEqualTo(new StoredQuestion(
 				"question-1",
+				"&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; already decoded",
 				"&lt;b&gt;Water&lt;/b&gt;",
 				List.of("&lt;i&gt;Fire&lt;/i&gt;", "Earth &amp; Wind", "&quot;Air&quot;", "&lt;b&gt;Water&lt;/b&gt;")));
 		assertThat(issuedQuestion.response().options())
@@ -54,8 +56,8 @@ class QuizMapperTest {
 	@Test
 	void toCheckAnswersResponseMapsStoredQuestionsToScoreAndResultFlags() {
 		List<StoredQuestion> questions = List.of(
-				new StoredQuestion("question-1", "Water", List.of("Water", "Fire")),
-				new StoredQuestion("question-2", "Earth", List.of("Earth", "Air")));
+				new StoredQuestion("question-1", "What is H2O?", "Water", List.of("Water", "Fire")),
+				new StoredQuestion("question-2", "Where do plants grow?", "Earth", List.of("Earth", "Air")));
 
 		CheckAnswersResponse response = quizMapper.toCheckAnswersResponse(questions, Map.of(
 				"question-1", "Water",
@@ -64,8 +66,18 @@ class QuizMapperTest {
 		assertThat(response.score()).isEqualTo(1);
 		assertThat(response.totalQuestions()).isEqualTo(2);
 		assertThat(response.results()).containsExactly(
-				new AnswerResultResponse("question-1", true),
-				new AnswerResultResponse("question-2", false));
+				new AnswerResultResponse("question-1", "What is H2O?", "Water", "Water", true),
+				new AnswerResultResponse("question-2", "Where do plants grow?", "Air", "Earth", false));
+	}
+
+	@Test
+	void answerResultsExposeReviewDataOnlyAfterSubmission() {
+		assertThat(StoredQuestion.class.getRecordComponents())
+				.extracting(RecordComponent::getName)
+				.contains("question");
+		assertThat(AnswerResultResponse.class.getRecordComponents())
+				.extracting(RecordComponent::getName)
+				.contains("question", "selectedAnswer", "correctAnswer", "correct");
 	}
 
 	@Test

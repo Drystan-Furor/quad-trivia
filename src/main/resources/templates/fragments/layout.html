@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#073b47">
+    <title th:text="${title}">Quad Trivia</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script defer th:src="@{/js/global.js}" src="/js/global.js"></script>
+</head>
+<body>
+<header class="site-header" th:fragment="siteHeader">
+    <div class="site-header__inner">
+        <a th:href="@{/}" href="/" class="brand" aria-label="Quad Trivia, naar startpagina">
+            <span class="brand__quad">QUAD</span>
+            <span class="brand__trivia">TRIVIA</span>
+        </a>
+        <span class="site-header__tagline">Speel. Denk. Scoor.</span>
+    </div>
+</header>
+</body>
+</html>

@@ -7,7 +7,8 @@
 - CSRF protection remains enabled, which protects the HTML form flow from cross-site request forgery.
 - Open Trivia DB session tokens are managed only on the server.
 - Correct answers are stored only in server-side quiz sessions until answer checking occurs.
-- The browser receives question text and answer options, but not the correct answer, token, or internal debug state.
+- Before submission, the browser receives question text and answer options, but not the correct answer, token, or internal debug state.
+- After a successful one-time submission, correct answers are returned for result review; the session is marked used first to prevent repeated probing.
 - Quiz sessions expire after 15 minutes and are marked as used after one successful submission.
 - Quiz creation is guarded by a 5 second window to reduce avoidable upstream pressure.
 - Open Trivia content is URL-decoded server-side and escaped before being rendered in Thymeleaf templates.

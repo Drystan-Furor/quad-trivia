@@ -1,36 +1,61 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quad Trivia - Resultaat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-neutral-200 text-cyan-950">
-<header class="sticky top-0 z-10 bg-cyan-950 text-amber-600">
-    <section class="max-w-4xl mx-auto flex items-center justify-between p-4">
-        <a href="/" class="text-3xl font-medium tracking-wide">
-            <span class="text-neutral-200">QUAD</span> TRIVIA
-        </a>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quad Trivia · Resultaat')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: siteHeader}"></header>
+
+<main class="site-main site-main--results">
+    <section class="result-hero" aria-labelledby="result-title">
+        <div class="score-ring"
+             th:style="|--score: ${(results.score() * 100) / results.totalQuestions()}%|"
+             role="img" th:aria-label="|${results.score()} van ${results.totalQuestions()} vragen goed|">
+            <span th:text="${results.score()}">0</span>
+            <small th:text="|van ${results.totalQuestions()}|">van 5</small>
+        </div>
+        <div>
+            <p class="eyebrow eyebrow--light">Quiz voltooid</p>
+            <h1 id="result-title" th:text="|Score ${results.score()} / ${results.totalQuestions()}|">Score 0 / 0</h1>
+            <p class="result-message" th:if="${results.score() * 4 >= results.totalQuestions() * 3}">
+                Indrukwekkend. Jij had deze ronde volledig onder controle.
+            </p>
+            <p class="result-message" th:if="${results.score() * 2 >= results.totalQuestions() and results.score() * 4 < results.totalQuestions() * 3}">
+                Sterke ronde. Nog een poging en je scherpt die score verder aan.
+            </p>
+            <p class="result-message" th:if="${results.score() * 2 < results.totalQuestions()}">
+                Elke vraag maakt je slimmer. Bekijk je antwoorden en probeer het opnieuw.
+            </p>
+        </div>
     </section>
-</header>
-<main class="max-w-4xl mx-auto p-4">
-    <section class="mt-8 rounded-2xl border border-amber-600 bg-neutral-100 p-6 shadow">
-        <p class="text-sm font-bold uppercase tracking-wide text-amber-600">Resultaat</p>
-        <h1 class="mt-2 text-4xl font-bold"
-            th:text="|Score ${results.score()} / ${results.totalQuestions()}|">Score 0 / 0</h1>
-        <ol class="mt-6 space-y-3">
+
+    <section class="review-section" aria-labelledby="review-title" data-result-review>
+        <div class="review-section__heading">
+            <div>
+                <p class="eyebrow">Antwoordoverzicht</p>
+                <h2 id="review-title">Dit ging goed — en dit kan beter</h2>
+            </div>
+            <a th:href="@{/}" href="/" class="button button--primary">Nieuwe quiz →</a>
+        </div>
+
+        <ol class="result-list">
             <li th:each="result, resultStat : ${results.results()}"
-                class="rounded-xl border-2 border-cyan-950 bg-white p-3 font-semibold shadow-[4px_4px_0_#083344]">
-                <span th:text="|Vraag ${resultStat.count}|">Vraag 1</span>
-                <span class="ml-2 text-emerald-700" th:if="${result.correct()}">goed</span>
-                <span class="ml-2 text-red-700" th:unless="${result.correct()}">fout</span>
+                class="result-item"
+                th:classappend="${result.correct()} ? ' result-item--correct' : ' result-item--incorrect'">
+                <div class="result-item__status" aria-hidden="true" th:text="${result.correct()} ? '✓' : '×'">✓</div>
+                <div class="result-item__content">
+                    <p class="result-item__number" th:text="|Vraag ${resultStat.count}|">Vraag 1</p>
+                    <h3 th:utext="${result.question()}">Vraag</h3>
+                    <p>
+                        <span class="result-item__label">Jouw antwoord:</span>
+                        <span th:utext="${result.selectedAnswer()}">Antwoord</span>
+                    </p>
+                    <p th:unless="${result.correct()}">
+                        <span class="result-item__label">Juiste antwoord:</span>
+                        <span th:utext="${result.correctAnswer()}">Juiste antwoord</span>
+                    </p>
+                    <span class="sr-only" th:text="${result.correct()} ? 'Goed beantwoord' : 'Fout beantwoord'">Goed beantwoord</span>
+                </div>
             </li>
         </ol>
-        <a th:href="@{/}"
-           class="mt-6 inline-block rounded-xl border-2 border-cyan-950 bg-amber-600 px-5 py-3 font-bold text-neutral-100 shadow-[4px_4px_0_#083344] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#083344]">
-            Nieuwe ronde
-        </a>
     </section>
 </main>
 </body>

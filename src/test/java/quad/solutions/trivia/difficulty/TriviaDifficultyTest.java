@@ -13,10 +13,10 @@ class TriviaDifficultyTest {
 		assertThat(TriviaDifficulty.options())
 				.extracting(TriviaDifficulty::apiValue, TriviaDifficulty::displayName)
 				.containsExactly(
-						tuple("any", "Any Difficulty"),
-						tuple("easy", "Easy"),
-						tuple("medium", "Medium"),
-						tuple("hard", "Hard"));
+						tuple("any", "Alle niveaus"),
+						tuple("easy", "Makkelijk"),
+						tuple("medium", "Gemiddeld"),
+						tuple("hard", "Moeilijk"));
 	}
 
 	@Test

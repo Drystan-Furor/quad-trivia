@@ -6,9 +6,9 @@ import java.util.Optional;
 
 public enum TriviaType {
 
-	ANY("any", "Any Type"),
-	MULTIPLE("multiple", "Multiple Choice"),
-	BOOLEAN("boolean", "True / False");
+	ANY("any", "Alle vraagtypen"),
+	MULTIPLE("multiple", "Meerkeuze"),
+	BOOLEAN("boolean", "Waar / onwaar");
 
 	private final String apiValue;
 	private final String displayName;

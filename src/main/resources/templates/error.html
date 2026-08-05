@@ -1,28 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quad Trivia - Fout</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-neutral-200 text-cyan-950">
-<header class="sticky top-0 z-10 bg-cyan-950 text-amber-600">
-    <section class="max-w-4xl mx-auto flex items-center justify-between p-4">
-        <a href="/" class="text-3xl font-medium tracking-wide">
-            <span class="text-neutral-200">QUAD</span> TRIVIA
-        </a>
-    </section>
-</header>
-<main class="max-w-4xl mx-auto p-4">
-    <section class="mt-8 rounded-2xl border border-amber-600 bg-neutral-100 p-6 shadow">
-        <p class="text-sm font-bold uppercase tracking-wide text-amber-600">Fout</p>
-        <h1 class="mt-2 text-4xl font-bold">Verzoek niet verwerkt</h1>
-        <p class="mt-4 text-lg font-medium" th:text="${errorMessage}">Er is iets misgegaan.</p>
-        <a th:href="@{/}"
-           class="mt-6 inline-block rounded-xl border-2 border-cyan-950 bg-amber-600 px-5 py-3 font-bold text-neutral-100 shadow-[4px_4px_0_#083344] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#083344]">
-            Terug naar start
-        </a>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quad Trivia · Oeps')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: siteHeader}"></header>
+
+<main class="site-main site-main--centered">
+    <section class="error-card" aria-labelledby="error-title">
+        <div class="error-card__mark" aria-hidden="true">!</div>
+        <p class="eyebrow">Dat ging niet zoals gepland</p>
+        <h1 id="error-title">Oeps, de ronde hapert</h1>
+        <p class="error-card__message" th:text="${errorMessage}">Er is iets misgegaan.</p>
+        <a th:href="@{/}" href="/" class="button button--primary">Terug naar start →</a>
     </section>
 </main>
 </body>

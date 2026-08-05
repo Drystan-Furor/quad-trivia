@@ -16,7 +16,7 @@ class SecurityConfig {
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 				.authorizeHttpRequests(authorize -> authorize
-						.requestMatchers(GET, "/", "/questions", "/js/**").permitAll()
+						.requestMatchers(GET, "/", "/questions", "/css/**", "/js/**").permitAll()
 						.requestMatchers(POST, "/questions", "/checkanswers").permitAll()
 						.anyRequest().denyAll())
 				.csrf(Customizer.withDefaults());

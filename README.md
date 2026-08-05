@@ -125,6 +125,7 @@ npm run e2e:install
 - CSRF protection stays enabled for state-changing requests, including the HTML form flow.
 - Any route outside the expected public surface is denied by default.
 - Correct answers are never included in question responses or rendered HTML before answer submission.
+- After a successful one-time submission, the result response includes review data with the selected and correct answers.
 - Open Trivia tokens stay server-side and are never returned to the browser.
 - User-visible content is HTML-escaped before rendering.
 

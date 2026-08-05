@@ -34,6 +34,12 @@ class SecurityConfigTest {
 	}
 
 	@Test
+	void staticStylesheetIsAccessibleWithoutAuthentication() throws Exception {
+		mockMvc.perform(get("/css/app.css"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
 	void unsupportedMethodsAreDenied() throws Exception {
 		mockMvc.perform(put("/questions").with(csrf()))
 				.andExpect(status().isForbidden());

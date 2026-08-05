@@ -17,7 +17,7 @@ class InMemoryQuizSessionStoreTest {
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
 		QuizSession session = new QuizSession(
 				"quiz-1",
-				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				List.of(new StoredQuestion("question-1", "What is H2O?", "Water", List.of("Water", "Fire"))),
 				Instant.parse("2026-05-14T10:15:30Z"),
 				Instant.parse("2026-05-14T10:30:30Z"),
 				false);
@@ -33,7 +33,7 @@ class InMemoryQuizSessionStoreTest {
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
 		QuizSession expiredSession = new QuizSession(
 				"quiz-2",
-				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				List.of(new StoredQuestion("question-1", "What is H2O?", "Water", List.of("Water", "Fire"))),
 				Instant.parse("2026-05-14T10:15:30Z"),
 				Instant.parse("2026-05-14T10:30:30Z"),
 				false);
@@ -49,7 +49,7 @@ class InMemoryQuizSessionStoreTest {
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(Clock.fixed(expiresAt, ZoneOffset.UTC));
 		store.save(new QuizSession(
 				"quiz-at-expiry",
-				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				List.of(new StoredQuestion("question-1", "What is H2O?", "Water", List.of("Water", "Fire"))),
 				Instant.parse("2026-05-14T10:15:30Z"),
 				expiresAt,
 				false));
@@ -63,7 +63,7 @@ class InMemoryQuizSessionStoreTest {
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
 		QuizSession session = new QuizSession(
 				"quiz-3",
-				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				List.of(new StoredQuestion("question-1", "What is H2O?", "Water", List.of("Water", "Fire"))),
 				Instant.parse("2026-05-14T10:15:30Z"),
 				Instant.parse("2026-05-14T10:30:30Z"),
 				false);
@@ -80,7 +80,7 @@ class InMemoryQuizSessionStoreTest {
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
 		QuizSession session = new QuizSession(
 				"quiz-4",
-				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				List.of(new StoredQuestion("question-1", "What is H2O?", "Water", List.of("Water", "Fire"))),
 				Instant.parse("2026-05-14T10:15:30Z"),
 				Instant.parse("2026-05-14T10:30:30Z"),
 				false);

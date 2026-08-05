@@ -6,10 +6,10 @@ import java.util.Optional;
 
 public enum TriviaDifficulty {
 
-	ANY("any", "Any Difficulty"),
-	EASY("easy", "Easy"),
-	MEDIUM("medium", "Medium"),
-	HARD("hard", "Hard");
+	ANY("any", "Alle niveaus"),
+	EASY("easy", "Makkelijk"),
+	MEDIUM("medium", "Gemiddeld"),
+	HARD("hard", "Moeilijk");
 
 	private final String apiValue;
 	private final String displayName;
