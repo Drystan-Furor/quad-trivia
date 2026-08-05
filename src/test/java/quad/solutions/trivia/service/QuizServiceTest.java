@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 
@@ -18,6 +19,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -330,6 +332,58 @@ class QuizServiceTest {
 		assertThatThrownBy(() -> quizService.checkAnswers(request))
 				.isInstanceOf(ResponseStatusException.class)
 				.hasMessageContaining("already been submitted");
+	}
+
+	@Test
+	void checkAnswersAcceptsOnlyOneParallelSubmission() throws Exception {
+		int attempts = 8;
+		CountDownLatch allRequestsReadyToScore = new CountDownLatch(attempts);
+		QuizMapper concurrentMapper = new QuizMapper(QuizServiceTest::moveFirstAnswerToLast) {
+			@Override
+			public CheckAnswersResponse toCheckAnswersResponse(List<StoredQuestion> questions,
+					Map<String, String> submittedAnswers) {
+				allRequestsReadyToScore.countDown();
+				try {
+					assertThat(allRequestsReadyToScore.await(1, TimeUnit.SECONDS)).isTrue();
+				}
+				catch (InterruptedException exception) {
+					Thread.currentThread().interrupt();
+					throw new AssertionError(exception);
+				}
+				return super.toCheckAnswersResponse(questions, submittedAnswers);
+			}
+		};
+		QuizService concurrentService = new QuizService(openTriviaClient, quizSessionStore, clock, concurrentMapper);
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY)).thenReturn(List.of(
+				new TriviaQuestion("boolean", "easy", "Science", "Is water wet?", "True", List.of("False"))));
+		QuizResponse quiz = concurrentService.createQuiz(1, null, TriviaDifficulty.ANY);
+		CheckAnswersRequest request = new CheckAnswersRequest(
+				quiz.quizId(),
+				List.of(new AnswerSubmissionRequest(quiz.questions().getFirst().id(), "True")));
+
+		ExecutorService executor = Executors.newFixedThreadPool(attempts);
+		try {
+			List<Future<Boolean>> results = IntStream.range(0, attempts)
+					.mapToObj(index -> executor.submit(() -> {
+						try {
+							concurrentService.checkAnswers(request);
+							return true;
+						}
+						catch (ResponseStatusException exception) {
+							assertThat(exception.getStatusCode()).isEqualTo(CONFLICT);
+							return false;
+						}
+					}))
+					.toList();
+
+			assertThat(results)
+					.extracting(Future::get)
+					.containsOnlyOnce(true)
+					.contains(false);
+		}
+		finally {
+			executor.shutdownNow();
+		}
 	}
 
 	@Test

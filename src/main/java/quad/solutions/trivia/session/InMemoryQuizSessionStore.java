@@ -31,11 +31,18 @@ public class InMemoryQuizSessionStore {
 		}
 
 		if (session.isExpiredAt(Instant.now(clock))) {
-			sessions.remove(id);
+			sessions.remove(id, session);
 			return Optional.empty();
 		}
 
 		return Optional.of(session);
+	}
+
+	public boolean markUsed(QuizSession quizSession) {
+		if (quizSession.used()) {
+			return false;
+		}
+		return sessions.replace(quizSession.id(), quizSession, quizSession.markUsed());
 	}
 
 }

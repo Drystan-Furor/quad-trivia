@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import lombok.RequiredArgsConstructor;
@@ -39,36 +40,42 @@ public class OpenTriviaClient {
 		return fetchQuestions(amount, category, difficulty, TriviaType.ANY);
 	}
 
-	public List<TriviaQuestion> fetchQuestions(int amount, Integer category, TriviaDifficulty difficulty, TriviaType type) {
+	public synchronized List<TriviaQuestion> fetchQuestions(int amount, Integer category, TriviaDifficulty difficulty,
+			TriviaType type) {
 		validateAmount(amount);
 		validateCategory(category);
 		TriviaDifficulty selectedDifficulty = validateDifficulty(difficulty);
 		TriviaType selectedType = validateType(type);
 
-		String token = getActiveToken();
-		TriviaApiResponse response = fetchQuestionsOnce(amount, category, selectedDifficulty, selectedType, token);
+		try {
+			String token = getActiveToken();
+			TriviaApiResponse response = fetchQuestionsOnce(amount, category, selectedDifficulty, selectedType, token);
 
-		if (response.responseCode() == INVALID_TOKEN) {
-			invalidateToken();
-			token = getActiveToken();
-			response = fetchQuestionsOnce(amount, category, selectedDifficulty, selectedType, token);
-		}
-		else if (response.responseCode() == TOKEN_EMPTY) {
-			token = resetOrReplaceToken(token);
-			response = fetchQuestionsOnce(amount, category, selectedDifficulty, selectedType, token);
-		}
+			if (response.responseCode() == INVALID_TOKEN) {
+				invalidateToken();
+				token = getActiveToken();
+				response = fetchQuestionsOnce(amount, category, selectedDifficulty, selectedType, token);
+			}
+			else if (response.responseCode() == TOKEN_EMPTY) {
+				token = resetOrReplaceToken(token);
+				response = fetchQuestionsOnce(amount, category, selectedDifficulty, selectedType, token);
+			}
 
-		if (response.responseCode() == RATE_LIMITED) {
-			throw new OpenTriviaRateLimitException("Open Trivia DB rate limit reached");
-		}
+			if (response.responseCode() == RATE_LIMITED) {
+				throw new OpenTriviaRateLimitException("Open Trivia DB rate limit reached");
+			}
 
-		if (response.responseCode() != SUCCESS) {
-			throw new OpenTriviaClientException("Open Trivia DB returned response_code=" + response.responseCode());
-		}
+			if (response.responseCode() != SUCCESS) {
+				throw new OpenTriviaClientException("Open Trivia DB returned response_code=" + response.responseCode());
+			}
 
-		return response.results().stream()
-				.map(this::mapQuestion)
-				.toList();
+			return response.results().stream()
+					.map(this::mapQuestion)
+					.toList();
+		}
+		catch (RestClientException exception) {
+			throw new OpenTriviaClientException("Open Trivia DB request failed", exception);
+		}
 	}
 
 	private void validateAmount(int amount) {

@@ -31,7 +31,7 @@ public class QuizMapper {
 
 	public IssuedQuestion toIssuedQuestion(TriviaQuestion upstreamQuestion, String questionId) {
 		List<String> sanitizedOptions = sanitizeOptions(upstreamQuestion);
-		List<String> shuffledOptions = optionShuffler.apply(sanitizedOptions);
+		List<String> shuffledOptions = List.copyOf(optionShuffler.apply(sanitizedOptions));
 		return new IssuedQuestion(
 				new QuestionResponse(
 						questionId,

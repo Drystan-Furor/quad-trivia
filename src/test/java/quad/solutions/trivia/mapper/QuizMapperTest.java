@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
@@ -65,6 +66,24 @@ class QuizMapperTest {
 		assertThat(response.results()).containsExactly(
 				new AnswerResultResponse("question-1", true),
 				new AnswerResultResponse("question-2", false));
+	}
+
+	@Test
+	void toIssuedQuestionCopiesMutableShufflerOutput() {
+		AtomicReference<List<String>> mutableOutput = new AtomicReference<>();
+		QuizMapper mapper = new QuizMapper(options -> {
+			List<String> shuffled = new ArrayList<>(options);
+			mutableOutput.set(shuffled);
+			return shuffled;
+		});
+		TriviaQuestion question = new TriviaQuestion(
+				"boolean", "easy", "Science", "Is water wet?", "True", List.of("False"));
+
+		QuizMapper.IssuedQuestion issuedQuestion = mapper.toIssuedQuestion(question, "question-1");
+		mutableOutput.get().set(0, "tampered");
+
+		assertThat(issuedQuestion.response().options()).containsExactly("True", "False");
+		assertThat(issuedQuestion.storedQuestion().options()).containsExactly("True", "False");
 	}
 
 	private static List<String> moveFirstAnswerToLast(List<String> options) {

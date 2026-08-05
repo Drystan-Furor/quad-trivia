@@ -6,4 +6,8 @@ public class OpenTriviaClientException extends RuntimeException {
 		super(message);
 	}
 
+	public OpenTriviaClientException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
 }

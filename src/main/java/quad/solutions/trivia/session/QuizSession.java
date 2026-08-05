@@ -11,7 +11,7 @@ public record QuizSession(
 		boolean used) {
 
 	public boolean isExpiredAt(Instant instant) {
-		return expiresAt != null && instant.isAfter(expiresAt);
+		return expiresAt != null && !instant.isBefore(expiresAt);
 	}
 
 	public QuizSession markUsed() {

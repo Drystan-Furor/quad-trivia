@@ -2,8 +2,10 @@ package quad.solutions.trivia.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.client.ExpectedCount.twice;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +14,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -320,6 +327,73 @@ class OpenTriviaClientTest {
 		assertThatThrownBy(() -> client.fetchQuestions(51, null, TriviaDifficulty.ANY))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("50");
+	}
+
+	@Test
+	void mapsUpstreamHttpErrorsToClientException() {
+		server.expect(requestTo("https://opentdb.com/api_token.php?command=request"))
+				.andRespond(withServerError());
+		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
+
+		assertThatThrownBy(() -> client.fetchQuestions(1, null, TriviaDifficulty.ANY))
+				.isInstanceOf(OpenTriviaClientException.class)
+				.hasMessageContaining("request failed");
+
+		server.verify();
+	}
+
+	@Test
+	void fetchQuestionsSerializesSharedTokenLifecycle() throws Exception {
+		RestClient.Builder concurrentBuilder = RestClient.builder().baseUrl("https://opentdb.com");
+		MockRestServiceServer concurrentServer = MockRestServiceServer.bindTo(concurrentBuilder)
+				.ignoreExpectOrder(true)
+				.build();
+		CountDownLatch firstTokenRequestStarted = new CountDownLatch(1);
+		CountDownLatch releaseFirstTokenRequest = new CountDownLatch(1);
+		CountDownLatch secondRequestStarted = new CountDownLatch(1);
+		concurrentServer.expect(requestTo("https://opentdb.com/api_token.php?command=request"))
+				.andRespond(request -> {
+					firstTokenRequestStarted.countDown();
+					try {
+						assertThat(releaseFirstTokenRequest.await(1, TimeUnit.SECONDS)).isTrue();
+					}
+					catch (InterruptedException exception) {
+						Thread.currentThread().interrupt();
+						throw new AssertionError(exception);
+					}
+					return json("""
+							{"response_code":0,"token":"session-token"}
+							""").createResponse(request);
+				});
+		concurrentServer.expect(twice(), requestTo(
+				"https://opentdb.com/api.php?amount=1&encode=url3986&token=session-token"))
+				.andRespond(json("""
+						{"response_code":0,"results":[]}
+						"""));
+
+		OpenTriviaClient client = new OpenTriviaClient(concurrentBuilder.build(), clock);
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		try {
+			Future<List<TriviaQuestion>> first = executor.submit(
+					() -> client.fetchQuestions(1, null, TriviaDifficulty.ANY, TriviaType.ANY));
+			assertThat(firstTokenRequestStarted.await(1, TimeUnit.SECONDS)).isTrue();
+			Future<List<TriviaQuestion>> second = executor.submit(() -> {
+				secondRequestStarted.countDown();
+				return client.fetchQuestions(1, null, TriviaDifficulty.ANY, TriviaType.ANY);
+			});
+
+			assertThat(secondRequestStarted.await(1, TimeUnit.SECONDS)).isTrue();
+			assertThatThrownBy(() -> second.get(250, TimeUnit.MILLISECONDS))
+					.isInstanceOf(java.util.concurrent.TimeoutException.class);
+			releaseFirstTokenRequest.countDown();
+			assertThat(first.get(1, TimeUnit.SECONDS)).isEmpty();
+			assertThat(second.get(1, TimeUnit.SECONDS)).isEmpty();
+			concurrentServer.verify();
+		}
+		finally {
+			releaseFirstTokenRequest.countDown();
+			executor.shutdownNow();
+		}
 	}
 
 	private org.springframework.test.web.client.ResponseCreator json(String body) {

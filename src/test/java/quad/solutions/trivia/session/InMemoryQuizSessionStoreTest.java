@@ -44,6 +44,20 @@ class InMemoryQuizSessionStoreTest {
 	}
 
 	@Test
+	void findByIdTreatsExactExpiryInstantAsExpired() {
+		Instant expiresAt = Instant.parse("2026-05-14T10:30:30Z");
+		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(Clock.fixed(expiresAt, ZoneOffset.UTC));
+		store.save(new QuizSession(
+				"quiz-at-expiry",
+				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				Instant.parse("2026-05-14T10:15:30Z"),
+				expiresAt,
+				false));
+
+		assertThat(store.findById("quiz-at-expiry")).isEmpty();
+	}
+
+	@Test
 	void markUsedUpdatesStoredSession() {
 		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:20:00Z"), ZoneOffset.UTC);
 		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
@@ -58,6 +72,23 @@ class InMemoryQuizSessionStoreTest {
 		store.save(session.markUsed());
 
 		assertThat(store.findById("quiz-3")).get().extracting(QuizSession::used).isEqualTo(true);
+	}
+
+	@Test
+	void markUsedOnlySucceedsForCurrentUnusedSession() {
+		Clock fixedClock = Clock.fixed(Instant.parse("2026-05-14T10:20:00Z"), ZoneOffset.UTC);
+		InMemoryQuizSessionStore store = new InMemoryQuizSessionStore(fixedClock);
+		QuizSession session = new QuizSession(
+				"quiz-4",
+				List.of(new StoredQuestion("question-1", "Water", List.of("Water", "Fire"))),
+				Instant.parse("2026-05-14T10:15:30Z"),
+				Instant.parse("2026-05-14T10:30:30Z"),
+				false);
+		store.save(session);
+
+		assertThat(store.markUsed(session)).isTrue();
+		assertThat(store.markUsed(session)).isFalse();
+		assertThat(store.markUsed(store.findById("quiz-4").orElseThrow())).isFalse();
 	}
 
 }

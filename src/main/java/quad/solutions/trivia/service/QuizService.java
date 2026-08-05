@@ -102,7 +102,9 @@ public class QuizService {
 						(first, second) -> second));
 
 		CheckAnswersResponse response = quizMapper.toCheckAnswersResponse(quizSession.questions(), submittedAnswers);
-		quizSessionStore.save(quizSession.markUsed());
+		if (!quizSessionStore.markUsed(quizSession)) {
+			throw new ResponseStatusException(CONFLICT, "Quiz answers have already been submitted");
+		}
 		return response;
 	}
 

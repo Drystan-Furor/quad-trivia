@@ -2,7 +2,9 @@ package quad.solutions.trivia.security;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,12 @@ class SecurityConfigTest {
 	void staticJavascriptIsAccessibleWithoutAuthentication() throws Exception {
 		mockMvc.perform(get("/js/global.js"))
 				.andExpect(status().isOk());
+	}
+
+	@Test
+	void unsupportedMethodsAreDenied() throws Exception {
+		mockMvc.perform(put("/questions").with(csrf()))
+				.andExpect(status().isForbidden());
 	}
 
 }
