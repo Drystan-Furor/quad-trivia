@@ -18,6 +18,7 @@ import quad.solutions.trivia.dto.CheckAnswersResponse;
 import quad.solutions.trivia.dto.QuizResponse;
 import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.service.QuizService;
+import quad.solutions.trivia.type.TriviaType;
 
 @Controller
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
@@ -29,8 +30,13 @@ class TriviaUiController {
 	String startQuiz(@RequestParam(defaultValue = "5") int amount,
 			@RequestParam(required = false) Integer category,
 			@RequestParam(required = false) String difficulty,
+			@RequestParam(required = false) String type,
 			Model model) {
-		QuizResponse quiz = quizService.createQuiz(amount, category, parseDifficulty(difficulty));
+		TriviaDifficulty selectedDifficulty = parseDifficulty(difficulty);
+		TriviaType selectedType = parseType(type);
+		QuizResponse quiz = selectedType == TriviaType.ANY
+				? quizService.createQuiz(amount, category, selectedDifficulty)
+				: quizService.createQuiz(amount, category, selectedDifficulty, selectedType);
 		model.addAttribute("quiz", quiz);
 		model.addAttribute("answerForm", new CheckAnswersForm());
 		return "quiz";
@@ -46,6 +52,15 @@ class TriviaUiController {
 	private TriviaDifficulty parseDifficulty(String difficulty) {
 		try {
 			return TriviaDifficulty.fromRequestValue(difficulty);
+		}
+		catch (IllegalArgumentException exception) {
+			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters", exception);
+		}
+	}
+
+	private TriviaType parseType(String type) {
+		try {
+			return TriviaType.fromRequestValue(type);
 		}
 		catch (IllegalArgumentException exception) {
 			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters", exception);

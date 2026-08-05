@@ -21,6 +21,7 @@ import org.springframework.web.client.RestClient;
 
 import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.model.TriviaQuestion;
+import quad.solutions.trivia.type.TriviaType;
 
 class OpenTriviaClientTest {
 
@@ -192,6 +193,39 @@ class OpenTriviaClientTest {
 
 		assertThat(questions).singleElement().satisfies(question ->
 				assertThat(question.difficulty()).isEqualTo("hard"));
+		server.verify();
+	}
+
+	@Test
+	void fetchQuestionsIncludesSelectedTriviaTypeWhenProvided() {
+		server.expect(requestTo("https://opentdb.com/api_token.php?command=request"))
+				.andRespond(json("""
+						{"response_code":0,"response_message":"Token Generated Successfully!","token":"session-token"}
+						"""));
+		server.expect(requestTo(
+				"https://opentdb.com/api.php?amount=1&type=boolean&encode=url3986&token=session-token"))
+				.andRespond(json("""
+						{
+						  "response_code":0,
+						  "results":[
+						    {
+						      "type":"boolean",
+						      "difficulty":"easy",
+						      "category":"History",
+						      "question":"Is%20this%20a%20boolean%20question%3F",
+						      "correct_answer":"True",
+						      "incorrect_answers":["False"]
+						    }
+						  ]
+						}
+						"""));
+
+		OpenTriviaClient client = new OpenTriviaClient(restClientBuilder.build(), clock);
+
+		List<TriviaQuestion> questions = client.fetchQuestions(1, null, TriviaDifficulty.ANY, TriviaType.BOOLEAN);
+
+		assertThat(questions).singleElement().satisfies(question ->
+				assertThat(question.type()).isEqualTo("boolean"));
 		server.verify();
 	}
 

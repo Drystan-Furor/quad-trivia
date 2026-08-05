@@ -7,6 +7,7 @@ test("user can start and submit a safe trivia round", async ({ page }) => {
   await expect(page.locator('head script[src="/js/global.js"][defer]')).toHaveCount(1);
   await page.getByLabel("Categorie").selectOption("18");
   await page.getByLabel("Difficulty").selectOption("medium");
+  await page.getByLabel("Type").selectOption("multiple");
   await page.getByRole("button", { name: "Start ronde" }).click();
 
   await expect(page.getByRole("heading", { name: "Trivia ronde" })).toBeVisible();

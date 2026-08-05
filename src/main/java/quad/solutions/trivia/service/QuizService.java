@@ -30,6 +30,7 @@ import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
 import quad.solutions.trivia.session.StoredQuestion;
+import quad.solutions.trivia.type.TriviaType;
 
 @Service
 public class QuizService {
@@ -53,9 +54,15 @@ public class QuizService {
 	}
 
 	public QuizResponse createQuiz(int amount, Integer category, TriviaDifficulty difficulty) {
-		validateQuizRequest(amount, category, difficulty);
+		return createQuiz(amount, category, difficulty, TriviaType.ANY);
+	}
+
+	public QuizResponse createQuiz(int amount, Integer category, TriviaDifficulty difficulty, TriviaType type) {
+		validateQuizRequest(amount, category, difficulty, type);
 		enforceQuizCreationGuard();
-		List<TriviaQuestion> upstreamQuestions = openTriviaClient.fetchQuestions(amount, category, difficulty);
+		List<TriviaQuestion> upstreamQuestions = type == TriviaType.ANY
+				? openTriviaClient.fetchQuestions(amount, category, difficulty)
+				: openTriviaClient.fetchQuestions(amount, category, difficulty, type);
 		String quizId = UUID.randomUUID().toString();
 		List<QuizMapper.IssuedQuestion> issuedQuestions = upstreamQuestions.stream()
 				.map(upstreamQuestion -> quizMapper.toIssuedQuestion(upstreamQuestion, UUID.randomUUID().toString()))
@@ -99,7 +106,7 @@ public class QuizService {
 		return response;
 	}
 
-	private void validateQuizRequest(int amount, Integer category, TriviaDifficulty difficulty) {
+	private void validateQuizRequest(int amount, Integer category, TriviaDifficulty difficulty, TriviaType type) {
 		if (amount < 1 || amount > 50) {
 			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters");
 		}
@@ -107,6 +114,9 @@ public class QuizService {
 			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters");
 		}
 		if (difficulty == null) {
+			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters");
+		}
+		if (type == null) {
 			throw new ResponseStatusException(BAD_REQUEST, "Invalid request parameters");
 		}
 	}

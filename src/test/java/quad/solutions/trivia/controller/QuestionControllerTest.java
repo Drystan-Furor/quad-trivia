@@ -36,6 +36,7 @@ import quad.solutions.trivia.dto.QuestionResponse;
 import quad.solutions.trivia.dto.QuizResponse;
 import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.service.QuizService;
+import quad.solutions.trivia.type.TriviaType;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -120,6 +121,28 @@ class QuestionControllerTest {
 	}
 
 	@Test
+	void getQuestionsPassesSelectedTriviaTypeToService() throws Exception {
+		when(quizService.createQuiz(5, null, TriviaDifficulty.ANY, TriviaType.MULTIPLE)).thenReturn(new QuizResponse(
+				"quiz-123",
+				List.of(new QuestionResponse(
+						"question-1",
+						"multiple",
+						"medium",
+						"Science: Computers",
+						"What does CPU stand for?",
+						List.of("Central Processing Unit", "Computer Personal Unit")))));
+
+		mockMvc.perform(get("/questions")
+				.param("amount", "5")
+				.param("type", "multiple"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.quizId").value("quiz-123"))
+				.andExpect(jsonPath("$.questions[0].type").value("multiple"));
+
+		verify(quizService).createQuiz(5, null, TriviaDifficulty.ANY, TriviaType.MULTIPLE);
+	}
+
+	@Test
 	void postCheckAnswersReturnsServerSideEvaluation() throws Exception {
 		CheckAnswersRequest request = new CheckAnswersRequest(
 				"quiz-123",
@@ -166,6 +189,13 @@ class QuestionControllerTest {
 	@Test
 	void getQuestionsRejectsUnknownDifficulties() throws Exception {
 		mockMvc.perform(get("/questions").param("difficulty", "expert"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
+	}
+
+	@Test
+	void getQuestionsRejectsUnknownTriviaTypes() throws Exception {
+		mockMvc.perform(get("/questions").param("type", "essay"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("Invalid request parameters"));
 	}

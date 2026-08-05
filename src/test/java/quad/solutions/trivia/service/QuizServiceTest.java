@@ -48,6 +48,7 @@ import quad.solutions.trivia.model.TriviaQuestion;
 import quad.solutions.trivia.session.InMemoryQuizSessionStore;
 import quad.solutions.trivia.session.QuizSession;
 import quad.solutions.trivia.session.StoredQuestion;
+import quad.solutions.trivia.type.TriviaType;
 
 @ExtendWith(MockitoExtension.class)
 class QuizServiceTest {
@@ -150,6 +151,24 @@ class QuizServiceTest {
 		assertThat(response.questions()).singleElement().satisfies(question ->
 				assertThat(question.difficulty()).isEqualTo("medium"));
 		verify(openTriviaClient).fetchQuestions(1, null, TriviaDifficulty.MEDIUM);
+	}
+
+	@Test
+	void createQuizPassesSelectedTriviaTypeToOpenTriviaClient() {
+		when(openTriviaClient.fetchQuestions(1, null, TriviaDifficulty.ANY, TriviaType.BOOLEAN)).thenReturn(List.of(
+				new TriviaQuestion(
+						"boolean",
+						"easy",
+						"Science: Computers",
+						"Does CPU stand for Central Processing Unit?",
+						"True",
+						List.of("False"))));
+
+		QuizResponse response = quizService.createQuiz(1, null, TriviaDifficulty.ANY, TriviaType.BOOLEAN);
+
+		assertThat(response.questions()).singleElement().satisfies(question ->
+				assertThat(question.type()).isEqualTo("boolean"));
+		verify(openTriviaClient).fetchQuestions(1, null, TriviaDifficulty.ANY, TriviaType.BOOLEAN);
 	}
 
 	@ParameterizedTest

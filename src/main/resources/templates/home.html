@@ -45,6 +45,15 @@
                             th:text="${difficulty.displayName()}">Any Difficulty</option>
                 </select>
             </label>
+            <label for="type" class="flex flex-col gap-2 text-sm font-semibold">
+                Type
+                <select id="type" name="type"
+                        class="w-56 rounded-xl border-2 border-cyan-950 bg-white px-3 py-2 text-base shadow-[4px_4px_0_#083344]">
+                    <option th:each="type : ${types}"
+                            th:value="${type.apiValue()}"
+                            th:text="${type.displayName()}">Any Type</option>
+                </select>
+            </label>
             <button type="submit"
                     class="inline-flex items-center gap-3 rounded-xl border-2 border-cyan-950 bg-amber-600 px-5 py-3 font-bold text-neutral-100 shadow-[4px_4px_0_#083344] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#083344] disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_#083344]"
                     data-submit-button>

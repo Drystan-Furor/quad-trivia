@@ -35,6 +35,7 @@ import quad.solutions.trivia.dto.QuestionResponse;
 import quad.solutions.trivia.dto.QuizResponse;
 import quad.solutions.trivia.difficulty.TriviaDifficulty;
 import quad.solutions.trivia.service.QuizService;
+import quad.solutions.trivia.type.TriviaType;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -127,6 +128,29 @@ class TriviaUiControllerTest {
 	}
 
 	@Test
+	void postQuestionsPassesSelectedTriviaTypeToService() throws Exception {
+		when(quizService.createQuiz(5, null, TriviaDifficulty.ANY, TriviaType.BOOLEAN)).thenReturn(new QuizResponse(
+				"quiz-123",
+				List.of(new QuestionResponse(
+						"question-1",
+						"boolean",
+						"easy",
+						"Science: Computers",
+						"Does CPU stand for Central Processing Unit?",
+						List.of("True", "False")))));
+
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5")
+				.param("type", "boolean"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("quiz"));
+
+		verify(quizService).createQuiz(5, null, TriviaDifficulty.ANY, TriviaType.BOOLEAN);
+	}
+
+	@Test
 	void postCheckAnswersRendersSafeResultsPage() throws Exception {
 		CheckAnswersRequest request = new CheckAnswersRequest(
 				"quiz-123",
@@ -201,6 +225,18 @@ class TriviaUiControllerTest {
 				.contentType(APPLICATION_FORM_URLENCODED)
 				.param("amount", "5")
 				.param("difficulty", "expert"))
+				.andExpect(status().isBadRequest())
+				.andExpect(view().name("error"))
+				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
+	}
+
+	@Test
+	void postQuestionsRejectsUnknownTriviaTypesWithFriendlyMessage() throws Exception {
+		mockMvc.perform(post("/questions")
+				.with(csrf())
+				.contentType(APPLICATION_FORM_URLENCODED)
+				.param("amount", "5")
+				.param("type", "essay"))
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("error"))
 				.andExpect(model().attribute("errorMessage", "Invalid request parameters"));
